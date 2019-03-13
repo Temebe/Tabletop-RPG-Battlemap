@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Tabletop RPG Battlemap.iml" filepath="$PROJECT_DIR$/Tabletop RPG Battlemap.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Tabletop RPG Battlemap.iml" filepath="$PROJECT_DIR$/.idea/Tabletop RPG Battlemap.iml" />
     </modules>
   </component>
 </project>
