@@ -1,8 +1,7 @@
-package login;
+package main;
 
 
 import javafx.scene.control.Button;
-import javafx.scene.image.ImageView;
 
 public class MapSquare extends Button {
 

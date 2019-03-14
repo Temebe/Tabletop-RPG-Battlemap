@@ -1,4 +1,4 @@
-package login;
+package main;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -17,7 +17,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) throws Exception{
         this.primaryStage = primaryStage;
         FXMLLoader fxmlLoader = new FXMLLoader();
-        Parent root = fxmlLoader.load(getClass().getResource("login.fxml"));
+        Parent root = fxmlLoader.load(getClass().getResource("res/fxml/login.fxml"));
         primaryStage.setTitle("Tabletop RPG Battlemap");
         primaryStage.setScene(new Scene(root));
         primaryStage.show();

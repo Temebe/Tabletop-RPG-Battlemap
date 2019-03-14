@@ -1,4 +1,4 @@
-package main;
+package controllers;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -22,22 +22,22 @@ public class OfflineMapEditorController {
     static final int mapHeight = 15;
     private Button[][] map;
     private HashMap<String, Image> cachedImages = new HashMap<>();
-    private String currentImage = "images/exampleSquare2.png";
+    private String currentImage = "/images/exampleSquare2.png";
 
     @FXML
     private AnchorPane mapView;
 
     public void makeNewMap(int width, int heigth) {
-        Image exampleSquare = new Image(getClass().getResourceAsStream("res/images/exampleSquare.png"));
-        Image exampleSquare2 = new Image(getClass().getResourceAsStream("res/images/exampleSquare2.png"));
-        cachedImages.put("res/images/exampleSquare.png", exampleSquare);
-        cachedImages.put("res/images/exampleSquare2.png", exampleSquare2);
+        Image exampleSquare = new Image(getClass().getResourceAsStream("/images/exampleSquare.png"));
+        Image exampleSquare2 = new Image(getClass().getResourceAsStream("/images/exampleSquare2.png"));
+        cachedImages.put("/images/exampleSquare.png", exampleSquare);
+        cachedImages.put("/images/exampleSquare2.png", exampleSquare2);
         int exampleSquareHeight = (int) exampleSquare.getHeight();
         int exampleSquareWidth = (int) exampleSquare.getWidth();
         map = new Button[width][heigth];
         for(int i = 0; i < width; i ++)
             for (int j = 0; j < heigth; j++) {
-                map[i][j] = setUpMapSquare(i, j, "res/images/exampleSquare.png");
+                map[i][j] = setUpMapSquare(i, j, "/images/exampleSquare.png");
                 mapView.getChildren().add(map[i][j]);
             }
     }
@@ -69,7 +69,7 @@ public class OfflineMapEditorController {
         FXMLLoader fxmlLoader = new FXMLLoader();
         Parent root = null;
         try {
-            root = (Parent) fxmlLoader.load(getClass().getResource("newMapSettings.fxml").openStream());
+            root = (Parent) fxmlLoader.load(getClass().getResource("/fxml/newMapSettings.fxml").openStream());
         } catch (IOException e) {
             e.printStackTrace();
         }

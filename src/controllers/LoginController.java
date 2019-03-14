@@ -1,4 +1,4 @@
-package main;
+package controllers;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -35,7 +35,7 @@ public class LoginController {
 
     public void startOfflineMode(ActionEvent actionEvent) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("offlineMapEditor.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/offlineMapEditor.fxml"));
             Stage stage = (Stage) offlineButton.getScene().getWindow();
             Scene scene = new Scene(loader.load());
             stage.setScene(scene);
