@@ -7,7 +7,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
-public class NewMapSettings {
+public class NewMapSettings extends popUpController{
 
     @FXML
     public AnchorPane createMapDialogue;
@@ -17,9 +17,6 @@ public class NewMapSettings {
     public TextField heightValue;
     @FXML
     public TextField widthValue;
-
-    OfflineMapEditorController parent;
-
 
     public void createMap(ActionEvent actionEvent) {
         if(!heightValue.getText().matches("[0-9]*"))
@@ -35,9 +32,5 @@ public class NewMapSettings {
     public void cancel(ActionEvent actionEvent) {
         Stage stage = (Stage) cancelButton.getScene().getWindow();
         stage.close();
-    }
-
-    public void setParent(OfflineMapEditorController parent) {
-        this.parent = parent;
     }
 }
