@@ -1,4 +1,4 @@
-package login;
+package main;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -29,6 +29,7 @@ public class NewMapSettings {
         int height = Integer.parseInt(heightValue.getText());
         int width = Integer.parseInt(widthValue.getText());
         parent.makeNewMap(height, width);
+        cancel(actionEvent);
     }
 
     public void cancel(ActionEvent actionEvent) {
