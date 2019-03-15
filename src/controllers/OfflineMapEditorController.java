@@ -9,18 +9,16 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.SplitPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.ContextMenuEvent;
-import javafx.scene.input.InputMethodEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
-import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,18 +27,40 @@ import java.util.HashMap;
 //TODO Get rid of useless event parameters
 public class OfflineMapEditorController {
 
-    static final int mapWidth = 15;
-    static final int mapHeight = 15;
+    static final int tilesGap = 10;
+    static final int tileSize = 50;
     private Button[][] map;
+    private ArrayList<Button> tilesMap = new ArrayList<>();
     private HashMap<String, Image> cachedImages = new HashMap<>();
     private String currentImage = "/images/exampleSquare2.png";
     private String selectedPackage;
+
+    //Extensions that Image class of javafx can handle
+    private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
+
+    @FXML
+    public AnchorPane tilesChooseView;
+
+    @FXML
+    public SplitPane splitPane;
 
     @FXML
     private AnchorPane mapView;
 
     @FXML
     private ChoiceBox packageChoiceBox;
+
+    @FXML
+    public void initialize() {
+        packageChoiceBox.getSelectionModel()
+            .selectedItemProperty()
+            .addListener((observableValue, o, t1) -> { changePackage();});
+        updatePackages();
+        //TODO Implement listener to splitPane
+        splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
+
+        });
+    }
 
     void makeNewMap(int width, int height) {
         Image exampleSquare = new Image(getClass().getResourceAsStream("/images/exampleSquare.png"));
@@ -69,6 +89,25 @@ public class OfflineMapEditorController {
         });
         mapSquare.setOnMouseDragged(mouseEvent -> moveCamera(mouseEvent));
         return mapSquare;
+    }
+
+    private Button setUpTile(String image) {
+        Button tile = new Button();
+        tile.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
+/*        if(cachedImages.containsKey("image"))
+            tile.setGraphic(new ImageView((cachedImages.get(image))));
+        else {
+            cachedImages.put(image, new Image(getClass().getResourceAsStream(image)));
+        }*/
+        if(!cachedImages.containsKey(image))
+            cachedImages.put(image, new Image(getClass().getResourceAsStream(image)));
+        tile.setGraphic(new ImageView(cachedImages.get(image)));
+        tile.setOnMouseClicked(mouseEvent -> {
+            if(mouseEvent.getButton() == MouseButton.PRIMARY) {
+                currentImage = image;
+            }
+        });
+        return tile;
     }
 
     public void moveCamera(MouseEvent mouseEvent) {
@@ -109,6 +148,7 @@ public class OfflineMapEditorController {
 
     //TODO Make sure /res/packages is always created
     //TODO Make this String[] -> observable list -> items prettier
+    //TODO When current package folder is deleted, there is error
     public void updatePackages() {
         File file = new File("res/packages");
         String[] packages = file.list((current, name) -> new File(current, name).isDirectory());
@@ -116,7 +156,6 @@ public class OfflineMapEditorController {
             popUpError("Lorem ipsum");
             return;
         }
-        System.out.println(Arrays.toString(packages));
         ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
         packageChoiceBox.setItems(packagesList);
     }
@@ -126,7 +165,56 @@ public class OfflineMapEditorController {
         controller.setErrorMsg(errorMsg);
     }
 
-    public void changePackage(MouseEvent mouseEvent) {
-        System.out.println(packageChoiceBox.getValue());
+    // This function sets tiles of choosen package so user can use them
+    //TODO Throw if sb deleted res/packages while program works
+    public void changePackage() {
+        if(packageChoiceBox.getValue() == null)
+            return;
+        File packagesDir = new File("res/packages/" + packageChoiceBox.getValue());
+        FileFilter filter = pathname -> hasProperExtension(pathname.getName());
+        File[] tiles = packagesDir.listFiles(filter);
+        //String tilesNames = file.list((current, name) -> new File(current, name).is());
+        //String[] tiles;
+        Button tile;
+        clearTilesLayout();
+        if(tiles == null)
+            return;
+        for(int i = 0; i < tiles.length; i++) {
+            tile = setUpTile("/packages/" + packageChoiceBox.getValue() + "/" + tiles[i].getName());
+            tilesMap.add(tile);
+            tilesChooseView.getChildren().add(tile);
+        }
+        updateTilesLayout();
     }
+
+    // Function that checks whether file's name include proper extension for graphics
+    public boolean hasProperExtension(String name) {
+        int dotPos = name.lastIndexOf('.');
+        String extension = name.substring(dotPos + 1);
+        for(String properExtension : tilesExtensions) {
+            if(properExtension.equalsIgnoreCase(extension))
+                return true;
+        }
+        return false;
+    }
+
+    public void clearTilesLayout() {
+        for(Button tile : tilesMap) tilesChooseView.getChildren().remove(tile);
+        tilesMap.clear();
+    }
+
+    public void updateTilesLayout() {
+        int maxInRow = (int)(tilesChooseView.getWidth() + tilesGap) / tileSize;
+        int i = 0;
+        int j = 0;
+        for (Button tile : tilesMap) {
+            tile.setLayoutX(i * (tileSize + tilesGap));
+            tile.setLayoutY(j * (tileSize + tilesGap));
+            i = (i+1)%maxInRow;
+            if(i == 0)
+                j++;
+        }
+    }
+
+
 }
