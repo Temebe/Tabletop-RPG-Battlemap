@@ -1,5 +1,6 @@
 package controllers;
 
+import com.google.gson.Gson;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -10,30 +11,98 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.SplitPane;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+import main.MapSquare;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 //TODO Get rid of useless event parameters
 public class OfflineMapEditorController {
 
+    private static final Logger log = Logger.getLogger(OfflineMapEditorController.class);
     static final int tilesGap = 10;
     static final int tileSize = 50;
-    private Button[][] map;
+    static final int tileStartingPosY = 30;
+    int maxInRow;
+    private boolean packageChosen = false;
+    private MapSquare[][] map;
     private ArrayList<Button> tilesMap = new ArrayList<>();
     private HashMap<String, Image> cachedImages = new HashMap<>();
     private String currentImage = "/images/exampleSquare2.png";
     private String selectedPackage;
+    private Gson gson = new Gson();
+
+    public void undo() { history.undo(); }
+
+    public void redo() { history.redo(); }
+
+    public enum action {
+        paintTile,
+    }
+
+    /*  History schemas
+        paintTile:
+        posX;posY;previousImage
+    */
+    class History {
+        private action[] historyTable = new action[50];
+        private String[] arguments = new String[50];
+        private int actualPos;
+        private int newPos = 0;
+        private int size = 0;
+        private int undos = 0;
+
+        public void append(action action, String argument) {
+            historyTable[newPos] = action;
+            arguments[newPos] = argument;
+            actualPos = newPos;
+            newPos = (newPos + 1)%50;
+            if(size != 50)
+                size++;
+            undos = 0;
+        }
+
+        public void undo() {
+            if(size == 0)
+                return;
+            String[] arguments = this.arguments[actualPos].split(";");
+            if(log.isDebugEnabled()) {
+                for(String string : arguments) {
+                    log.debug(string);
+                }
+            }
+            switch(historyTable[actualPos]) {
+                case paintTile:
+                    int posX = Integer.parseInt(arguments[0]);
+                    int posY = Integer.parseInt(arguments[1]);
+                    map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
+                    break;
+            }
+            undos++;
+            size--;
+            actualPos = (actualPos - 1)%50;
+        }
+
+        public void redo() {
+            if(undos == 0)
+                return;
+
+
+        }
+    }
+
+    History history = new History();
 
     //Extensions that Image class of javafx can handle
     private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
@@ -56,10 +125,24 @@ public class OfflineMapEditorController {
             .selectedItemProperty()
             .addListener((observableValue, o, t1) -> { changePackage();});
         updatePackages();
-        //TODO Implement listener to splitPane
         splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
-
+            if((double)newVal < (double)oldVal) {
+                updateTilesLayout(1);
+                return;
+            }
+            if(!packageChosen)
+                return;
+            if (maxInRow < (int) tilesChooseView.getWidth() / (tileSize + tilesGap)) {
+                if(log.isDebugEnabled()) {
+                    log.debug("Max in row = " + maxInRow);
+                    log.debug("New max in row = " + (int) (tilesChooseView.getWidth() + tilesGap) / tileSize);
+                    log.debug("Width = " + tilesChooseView.getWidth());
+                }
+                updateTilesLayout();
+            }
         });
+        KeyCombination undoShortcut = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
+        Runnable undoRunnable = this::undo;
     }
 
     void makeNewMap(int width, int height) {
@@ -69,7 +152,7 @@ public class OfflineMapEditorController {
         cachedImages.put("/images/exampleSquare2.png", exampleSquare2);
         int exampleSquareHeight = (int) exampleSquare.getHeight();
         int exampleSquareWidth = (int) exampleSquare.getWidth();
-        map = new Button[width][height];
+        map = new MapSquare[width][height];
         for(int i = 0; i < width; i ++)
             for (int j = 0; j < height; j++) {
                 map[i][j] = setUpMapSquare(i, j, "/images/exampleSquare.png");
@@ -77,15 +160,17 @@ public class OfflineMapEditorController {
             }
     }
 
-    private Button setUpMapSquare(int posY, int posX, String image) {
-        Button mapSquare = new Button();
-        mapSquare.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
-        mapSquare.setGraphic(new ImageView(cachedImages.get(image)));
-        mapSquare.setLayoutX(posX * (cachedImages.get(image).getWidth() + 1));
-        mapSquare.setLayoutY(posY * (cachedImages.get(image).getHeight() + 1));
+    private MapSquare setUpMapSquare(int posY, int posX, String image) {
+        MapSquare mapSquare = new MapSquare(posX, posY);
+        mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
+        mapSquare.setLayoutX(posX * (tileSize + 1));
+        mapSquare.setLayoutY(posY * (tileSize + 1));
         mapSquare.setOnMouseClicked(mouseEvent -> {
-            if(mouseEvent.getButton() == MouseButton.PRIMARY)
-                mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)));
+            if(mouseEvent.getButton() == MouseButton.PRIMARY) {
+                String arguments = posX + ";" + posY + ";" + mapSquare.getImage();
+                mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)), currentImage);
+                history.append(action.paintTile, arguments);
+            }
         });
         mapSquare.setOnMouseDragged(mouseEvent -> moveCamera(mouseEvent));
         return mapSquare;
@@ -94,20 +179,23 @@ public class OfflineMapEditorController {
     private Button setUpTile(String image) {
         Button tile = new Button();
         tile.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
-/*        if(cachedImages.containsKey("image"))
-            tile.setGraphic(new ImageView((cachedImages.get(image))));
-        else {
-            cachedImages.put(image, new Image(getClass().getResourceAsStream(image)));
-        }*/
         if(!cachedImages.containsKey(image))
             cachedImages.put(image, new Image(getClass().getResourceAsStream(image)));
         tile.setGraphic(new ImageView(cachedImages.get(image)));
         tile.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
                 currentImage = image;
+                uncheckTiles();
+                tile.setEffect(new DropShadow());
             }
         });
         return tile;
+    }
+
+    private void uncheckTiles() {
+        for (Button tile : tilesMap) {
+            tile.setEffect(null);
+        }
     }
 
     public void moveCamera(MouseEvent mouseEvent) {
@@ -158,6 +246,7 @@ public class OfflineMapEditorController {
         }
         ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
         packageChoiceBox.setItems(packagesList);
+        clearTilesLayout();
     }
 
     public void popUpError(String errorMsg) {
@@ -173,8 +262,7 @@ public class OfflineMapEditorController {
         File packagesDir = new File("res/packages/" + packageChoiceBox.getValue());
         FileFilter filter = pathname -> hasProperExtension(pathname.getName());
         File[] tiles = packagesDir.listFiles(filter);
-        //String tilesNames = file.list((current, name) -> new File(current, name).is());
-        //String[] tiles;
+
         Button tile;
         clearTilesLayout();
         if(tiles == null)
@@ -184,6 +272,7 @@ public class OfflineMapEditorController {
             tilesMap.add(tile);
             tilesChooseView.getChildren().add(tile);
         }
+        packageChosen = true;
         updateTilesLayout();
     }
 
@@ -204,15 +293,27 @@ public class OfflineMapEditorController {
     }
 
     public void updateTilesLayout() {
-        int maxInRow = (int)(tilesChooseView.getWidth() + tilesGap) / tileSize;
+        updateTilesLayout(0);
+    }
+
+    public void updateTilesLayout(int decreaseRowValue) {
+        maxInRow = (int)(tilesChooseView.getWidth() / (tileSize + tilesGap)) - decreaseRowValue;
         int i = 0;
         int j = 0;
         for (Button tile : tilesMap) {
             tile.setLayoutX(i * (tileSize + tilesGap));
-            tile.setLayoutY(j * (tileSize + tilesGap));
+            tile.setLayoutY((j + 1) * (tileSize + tilesGap));
             i = (i+1)%maxInRow;
             if(i == 0)
                 j++;
+        }
+    }
+
+    public void saveMap() {
+        try {
+            gson.toJson(map, new FileWriter("/maps"));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

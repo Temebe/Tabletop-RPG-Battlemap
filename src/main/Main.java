@@ -5,12 +5,14 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
 public class Main extends Application {
 
     private Stage primaryStage;
+    private static final Logger log = Logger.getLogger(Main.class);
 
 
     @Override
@@ -21,6 +23,7 @@ public class Main extends Application {
         primaryStage.setTitle("Tabletop RPG Battlemap");
         primaryStage.setScene(new Scene(root));
         primaryStage.show();
+        log.info("Test of log4j");
     }
 
     public void changeScene(String fxml) throws IOException {
