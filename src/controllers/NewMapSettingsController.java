@@ -29,6 +29,13 @@ public class NewMapSettingsController extends popUpController{
         cancel(actionEvent);
     }
 
+    @FXML
+    public void initialize() {
+        //default values for height and width
+        heightValue.setText("10");
+        widthValue.setText("10");
+    }
+
     public void cancel(ActionEvent actionEvent) {
         Stage stage = (Stage) cancelButton.getScene().getWindow();
         stage.close();

@@ -10,20 +10,19 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import main.MapSquare;
 import org.apache.log4j.Logger;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -42,6 +41,9 @@ public class OfflineMapEditorController {
     private String currentImage = "/images/exampleSquare2.png";
     private String selectedPackage;
     private Gson gson = new Gson();
+    private int mapHeight;
+    private int mapWidth;
+    private boolean mapSet = false;
 
     public void undo() { history.undo(); }
 
@@ -55,6 +57,8 @@ public class OfflineMapEditorController {
         paintTile:
         posX;posY;previousImage
     */
+    //TODO add some const for this 50 history capacity
+    //TODO get rid of duplicate
     class History {
         private action[] historyTable = new action[50];
         private String[] arguments = new String[50];
@@ -86,18 +90,34 @@ public class OfflineMapEditorController {
                 case paintTile:
                     int posX = Integer.parseInt(arguments[0]);
                     int posY = Integer.parseInt(arguments[1]);
+                    //We're changing argument for possible redo
+                    this.arguments[actualPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
                     map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
                     break;
             }
             undos++;
             size--;
             actualPos = (actualPos - 1)%50;
+            newPos = (newPos - 1)%50;
         }
 
         public void redo() {
             if(undos == 0)
                 return;
-
+            String[] arguments = this.arguments[newPos].split(";");
+            switch(historyTable[newPos]) {
+                case paintTile:
+                    int posX = Integer.parseInt(arguments[0]);
+                    int posY = Integer.parseInt(arguments[1]);
+                    //We're changing argument for possible undo
+                    this.arguments[newPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
+                    map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
+                    break;
+            }
+            undos--;
+            size++;
+            actualPos = (actualPos + 1)%50;
+            newPos = (newPos + 1)%50;
 
         }
     }
@@ -118,6 +138,12 @@ public class OfflineMapEditorController {
 
     @FXML
     private ChoiceBox packageChoiceBox;
+
+    @FXML
+    public MenuItem undoBtn;
+
+    @FXML
+    public MenuItem redoBtn;
 
     @FXML
     public void initialize() {
@@ -141,17 +167,13 @@ public class OfflineMapEditorController {
                 updateTilesLayout();
             }
         });
-        KeyCombination undoShortcut = new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
-        Runnable undoRunnable = this::undo;
     }
 
     void makeNewMap(int width, int height) {
+        mapWidth = width;
+        mapHeight = height;
         Image exampleSquare = new Image(getClass().getResourceAsStream("/images/exampleSquare.png"));
-        Image exampleSquare2 = new Image(getClass().getResourceAsStream("/images/exampleSquare2.png"));
         cachedImages.put("/images/exampleSquare.png", exampleSquare);
-        cachedImages.put("/images/exampleSquare2.png", exampleSquare2);
-        int exampleSquareHeight = (int) exampleSquare.getHeight();
-        int exampleSquareWidth = (int) exampleSquare.getWidth();
         map = new MapSquare[width][height];
         for(int i = 0; i < width; i ++)
             for (int j = 0; j < height; j++) {
@@ -310,12 +332,37 @@ public class OfflineMapEditorController {
     }
 
     public void saveMap() {
-        try {
-            gson.toJson(map, new FileWriter("/maps"));
+/*        try {
+            //gson.toJson(map, new FileWriter("/maps"));
+            String test = gson.toJson(map);
+            if(log.isDebugEnabled()) log.debug(test);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        }*/
+        FileChooser fileChooser = new FileChooser();
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+        fileChooser.getExtensionFilters().add(extFilter);
+        File file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
+        saveMapToFile(file);
     }
 
+    //TODO add some exceptions for missing images or something
+    private void saveMapToFile(File file) {
+        PrintWriter writer;
+        try {
+            writer = new PrintWriter(file);
+            writer.println(mapHeight + " " + mapWidth);
+        } catch (FileNotFoundException e) {
+            log.error(e.getStackTrace());
+            return;
+        }
+        for (MapSquare[] squaresLine : map) {
+            for (MapSquare square : squaresLine) {
+                writer.println(square.getImage());
+                if(log.isDebugEnabled()) log.debug(square.getImage());
+            }
+        }
+        writer.close();
+    }
 
 }
