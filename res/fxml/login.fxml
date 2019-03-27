@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane id="AnchorPane" fx:controller="controllers.LoginController" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="300.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2">
+  <children>
+    <Text fx:id="title" layoutX="100.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="RPG Battlemap" />
+    <Text layoutX="91.0" layoutY="135.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Connect to server" />
+    <Button layoutX="117.0" layoutY="263.0" mnemonicParsing="false" text="Log in" />
+    <Button fx:id="offlineButton" layoutX="98.0" layoutY="50.0" mnemonicParsing="false" onAction="#startOfflineMode" text="Start offline" />
+    <ToggleButton fx:id="toggleGM" layoutX="63.0" layoutY="309.0" mnemonicParsing="false" onAction="#toggleGMLogin" text="Log in as GameMaster" />
+    <TextField fx:id="ipField" layoutX="150.0" layoutY="154.0" prefWidth="136.0" />
+    <TextField fx:id="nameField" layoutX="150.0" layoutY="187.0" prefWidth="136.0" />
+    <PasswordField fx:id="passwordField" layoutX="150.0" layoutY="221.0" prefWidth="136.0" />
+    <Text layoutX="14.0" layoutY="170.0" strokeType="OUTSIDE" strokeWidth="0.0" text="IP" />
+    <Text layoutX="14.0" layoutY="206.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+    <Text layoutX="14.0" layoutY="240.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Server password" />
+    <PasswordField fx:id="gmPasswordField" layoutX="150.0" layoutY="344.0" prefWidth="136.0" visible="false" />
+    <Text fx:id="gmPasswordText" layoutX="14.0" layoutY="363.0" strokeType="OUTSIDE" strokeWidth="0.0" text="GM Password" visible="false" />
+  </children>
+</AnchorPane>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane fx:id="createMapDialogue" prefHeight="130.0" prefWidth="299.9998779296875" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.ErrorPopUpController">
+  <children>
+    <Text fx:id="errorText" layoutX="14.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" />
+    <Button fx:id="okButton" defaultButton="true" layoutX="126.0" layoutY="89.0" mnemonicParsing="false" onAction="#cancel" text="OK" />
+  </children>
+</AnchorPane>

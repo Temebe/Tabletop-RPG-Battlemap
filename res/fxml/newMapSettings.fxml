@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane fx:id="createMapDialogue" prefHeight="400.0" prefWidth="300.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.NewMapSettingsController">
+  <children>
+    <Text layoutX="72.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New map configuration" />
+    <Text layoutX="27.0" layoutY="89.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Height" />
+    <Text layoutX="96.0" layoutY="89.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Width" />
+    <TextField fx:id="heightValue" layoutX="29.0" layoutY="107.0" prefWidth="40.048828125" />
+    <TextField fx:id="widthValue" layoutX="96.0" layoutY="107.0" prefWidth="41.0" />
+    <Button fx:id="createButton" defaultButton="true" layoutX="207.0" layoutY="107.0" mnemonicParsing="false" onAction="#createMap" text="Create" />
+    <Button id="cancel" fx:id="cancelButton" cancelButton="true" layoutX="117.0" layoutY="343.0" mnemonicParsing="false" onAction="#cancel" text="Cancel" />
+  </children>
+</AnchorPane>

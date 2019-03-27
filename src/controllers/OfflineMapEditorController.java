@@ -57,11 +57,11 @@ public class OfflineMapEditorController {
         paintTile:
         posX;posY;previousImage
     */
-    //TODO add some const for this 50 history capacity
     //TODO get rid of duplicate
     class History {
-        private action[] historyTable = new action[50];
-        private String[] arguments = new String[50];
+        public static final int historyCap = 50;
+        private action[] historyTable = new action[historyCap];
+        private String[] arguments = new String[historyCap];
         private int actualPos;
         private int newPos = 0;
         private int size = 0;
@@ -71,8 +71,8 @@ public class OfflineMapEditorController {
             historyTable[newPos] = action;
             arguments[newPos] = argument;
             actualPos = newPos;
-            newPos = (newPos + 1)%50;
-            if(size != 50)
+            newPos = (newPos + 1)%historyCap;
+            if(size != historyCap)
                 size++;
             undos = 0;
         }
@@ -97,8 +97,8 @@ public class OfflineMapEditorController {
             }
             undos++;
             size--;
-            actualPos = (actualPos - 1)%50;
-            newPos = (newPos - 1)%50;
+            actualPos = (actualPos - 1)%historyCap;
+            newPos = (newPos - 1)%historyCap;
         }
 
         public void redo() {
@@ -116,8 +116,8 @@ public class OfflineMapEditorController {
             }
             undos--;
             size++;
-            actualPos = (actualPos + 1)%50;
-            newPos = (newPos + 1)%50;
+            actualPos = (actualPos + 1)%historyCap;
+            newPos = (newPos + 1)%historyCap;
 
         }
     }
@@ -189,13 +189,35 @@ public class OfflineMapEditorController {
         mapSquare.setLayoutY(posY * (tileSize + 1));
         mapSquare.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
-                String arguments = posX + ";" + posY + ";" + mapSquare.getImage();
-                mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)), currentImage);
-                history.append(action.paintTile, arguments);
+                setMapSquareGraphic(posY, posX, mapSquare);
             }
         });
-        mapSquare.setOnMouseDragged(mouseEvent -> moveCamera(mouseEvent));
+        //mapSquare.setOnMouseMo
+        mapSquare.setOnMouseDragged(mouseEvent -> {
+            if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent);
+/*            if(mouseEvent.isPrimaryButtonDown()) {
+                setMapSquareGraphic(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+            }*/
+        });
+        mapSquare.setOnMouseDragOver(mouseDragEvent -> {
+            if(log.isDebugEnabled()) log.debug("DRAG");
+        });
         return mapSquare;
+    }
+
+    private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare) {
+        String arguments = posX + ";" + posY + ";" + mapSquare.getImage();
+        mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)), currentImage);
+        history.append(action.paintTile, arguments);
+    }
+
+    private void setMapSquareGraphic(double mousePosX, double mousePosY) {
+        int posX, posY;
+        posX = (int)mousePosX / (tileSize + tilesGap);
+        posY = (int)mousePosY / (tileSize + tilesGap);
+        if((posX > mapWidth) || (posY > mapHeight))
+            return;
+        setMapSquareGraphic(posY, posX, map[posY][posX]);
     }
 
     private Button setUpTile(String image) {
@@ -332,18 +354,21 @@ public class OfflineMapEditorController {
     }
 
     public void saveMap() {
-/*        try {
-            //gson.toJson(map, new FileWriter("/maps"));
-            String test = gson.toJson(map);
-            if(log.isDebugEnabled()) log.debug(test);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
         FileChooser fileChooser = new FileChooser();
+        File startingDirectory = new File("res/maps");
+        boolean result = true;
+        if(!startingDirectory.exists()) {
+            result = startingDirectory.mkdir();
+        }
+        if(!result)
+            startingDirectory = new File("c:/");
+        fileChooser.setInitialDirectory(startingDirectory);
+        fileChooser.setInitialFileName("New map.txt");
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
         fileChooser.getExtensionFilters().add(extFilter);
         File file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
-        saveMapToFile(file);
+        if(file != null)
+            saveMapToFile(file);
     }
 
     //TODO add some exceptions for missing images or something
@@ -364,5 +389,7 @@ public class OfflineMapEditorController {
         }
         writer.close();
     }
+
+
 
 }
