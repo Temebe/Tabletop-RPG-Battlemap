@@ -42,6 +42,9 @@ public class LoginController {
             Stage stage = (Stage) offlineButton.getScene().getWindow();
             Scene scene = new Scene(loader.load());
             stage.setScene(scene);
+            stage.setTitle("untitled - Tabletop RPG Battlemap");
+            OfflineMapEditorController controller = (OfflineMapEditorController)loader.getController();
+            controller.setStage(stage);
         } catch (IOException e) {
             e.printStackTrace();
         }

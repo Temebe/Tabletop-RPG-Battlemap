@@ -44,6 +44,9 @@ public class OfflineMapEditorController {
     private int mapHeight;
     private int mapWidth;
     private boolean mapSet = false;
+    private boolean changedMap = false;
+    private File saveLocation = null;
+    private Stage stage;
 
     public void undo() { history.undo(); }
 
@@ -67,14 +70,19 @@ public class OfflineMapEditorController {
         private int size = 0;
         private int undos = 0;
 
-        public void append(action action, String argument) {
+        public void append(action action, String arguments) {
+            //Prevent from multiplying same action
+            if(historyTable[actualPos] == action && this.arguments[actualPos].equals(arguments))
+                return;
             historyTable[newPos] = action;
-            arguments[newPos] = argument;
+            this.arguments[newPos] = arguments;
             actualPos = newPos;
             newPos = (newPos + 1)%historyCap;
             if(size != historyCap)
                 size++;
             undos = 0;
+            changedMap = true;
+            updateTitle();
         }
 
         public void undo() {
@@ -118,7 +126,6 @@ public class OfflineMapEditorController {
             size++;
             actualPos = (actualPos + 1)%historyCap;
             newPos = (newPos + 1)%historyCap;
-
         }
     }
 
@@ -169,6 +176,21 @@ public class OfflineMapEditorController {
         });
     }
 
+    void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
+    void updateTitle() {
+        String name;
+        if(saveLocation != null)
+            name = saveLocation.getName();
+        else
+            name = "untitled";
+        if(changedMap)
+            name += "*";
+        stage.setTitle(String.format("%s - Tabletop RPG Battlemap", name));
+    }
+
     void makeNewMap(int width, int height) {
         mapWidth = width;
         mapHeight = height;
@@ -192,15 +214,16 @@ public class OfflineMapEditorController {
                 setMapSquareGraphic(posY, posX, mapSquare);
             }
         });
-        //mapSquare.setOnMouseMo
         mapSquare.setOnMouseDragged(mouseEvent -> {
             if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent);
-/*            if(mouseEvent.isPrimaryButtonDown()) {
-                setMapSquareGraphic(mouseEvent.getSceneX(), mouseEvent.getSceneY());
-            }*/
+        });
+        mapSquare.setOnDragDetected(mouseEvent -> {
+            mapSquare.startFullDrag();
         });
         mapSquare.setOnMouseDragOver(mouseDragEvent -> {
-            if(log.isDebugEnabled()) log.debug("DRAG");
+            if(mouseDragEvent.getButton() == MouseButton.PRIMARY) {
+                setMapSquareGraphic(posY, posX, mapSquare);
+            }
         });
         return mapSquare;
     }
@@ -294,11 +317,12 @@ public class OfflineMapEditorController {
     }
 
     public void popUpError(String errorMsg) {
-        ErrorPopUpController controller = (ErrorPopUpController)popUpNewWindow("errorPopUp.fxml", "Error");
+        ErrorPopUpController controller =
+                (ErrorPopUpController)popUpNewWindow("errorPopUp.fxml", "Error");
         controller.setErrorMsg(errorMsg);
     }
 
-    // This function sets tiles of choosen package so user can use them
+    // This function sets tiles of chosen package so user can use them
     //TODO Throw if sb deleted res/packages while program works
     public void changePackage() {
         if(packageChoiceBox.getValue() == null)
@@ -353,7 +377,23 @@ public class OfflineMapEditorController {
         }
     }
 
+    // Special function for "Save as" button which forces FileChooser to open
+    public void saveMapAs() {
+        saveMap(true);
+    }
+
     public void saveMap() {
+        saveMap(false);
+    }
+
+    public void saveMap(boolean forceFileChooser) {
+        // Check if map is not saved already nor user is forcing fileChooser
+        if(saveLocation != null && !forceFileChooser) {
+            if(saveLocation.exists()) {
+                saveMapToFile(saveLocation);
+                return;
+            }
+        }
         FileChooser fileChooser = new FileChooser();
         File startingDirectory = new File("res/maps");
         boolean result = true;
@@ -387,6 +427,9 @@ public class OfflineMapEditorController {
                 if(log.isDebugEnabled()) log.debug(square.getImage());
             }
         }
+        saveLocation = file;
+        changedMap = false;
+        updateTitle();
         writer.close();
     }
 
