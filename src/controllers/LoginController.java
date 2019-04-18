@@ -1,6 +1,7 @@
 package controllers;
 
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -12,6 +13,7 @@ import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 import java.io.IOException;
 
@@ -45,6 +47,9 @@ public class LoginController {
             stage.setTitle("untitled - Tabletop RPG Battlemap");
             OfflineMapEditorController controller = (OfflineMapEditorController)loader.getController();
             controller.setStage(stage);
+            // Line below initializes actions that need stage to be already created
+            // which is not the case for initialize method
+            controller.setUpStage();
         } catch (IOException e) {
             e.printStackTrace();
         }

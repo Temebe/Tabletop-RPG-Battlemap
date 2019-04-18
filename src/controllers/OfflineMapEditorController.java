@@ -8,10 +8,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.SplitPane;
+import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -47,20 +44,52 @@ public class OfflineMapEditorController {
     private boolean changedMap = false;
     private File saveLocation = null;
     private Stage stage;
+    private final KeyCombination undoComb =
+            new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination redoComb =
+            new KeyCodeCombination(KeyCode.Z, KeyCombination.CONTROL_DOWN, KeyCombination.SHIFT_DOWN);
+    private final KeyCombination saveComb =
+            new KeyCodeCombination(KeyCode.S, KeyCombination.CONTROL_DOWN);
+    private final KeyCombination newMapComb =
+            new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
+    private action currentAction;
 
     public void undo() { history.undo(); }
 
     public void redo() { history.redo(); }
 
-    public enum action {
-        paintTile,
+    public void setActionDrawing() {
+        currentAction = action.paintTile;
     }
 
-    /*  History schemas
-        paintTile:
-        posX;posY;previousImage
-    */
-    //TODO get rid of duplicate
+    public void setActionRuler() {
+        currentAction = action.ruler;
+    }
+
+    public void setUpStage() {
+        if(log.isDebugEnabled()) log.debug("Setting stage up");
+        // UNDO
+        stage.getScene().getAccelerators().put(undoComb,
+                this::undo);
+        // REDO
+        stage.getScene().getAccelerators().put(redoComb,
+                this::redo);
+        // SAVE MAP
+        stage.getScene().getAccelerators().put(saveComb,
+                this::saveMap);
+        // NEW MAP
+        stage.getScene().getAccelerators().put(newMapComb,
+                this::popUpNewMapSettings);
+
+    }
+
+    public enum action {
+        paintTile,
+        ruler,
+    }
+
+    //FIXME drawing with one drag generates too much history
+    //FIXME throws exception after trying to do too many undos
     class History {
         public static final int historyCap = 50;
         private action[] historyTable = new action[historyCap];
@@ -89,20 +118,7 @@ public class OfflineMapEditorController {
             if(size == 0)
                 return;
             String[] arguments = this.arguments[actualPos].split(";");
-            if(log.isDebugEnabled()) {
-                for(String string : arguments) {
-                    log.debug(string);
-                }
-            }
-            switch(historyTable[actualPos]) {
-                case paintTile:
-                    int posX = Integer.parseInt(arguments[0]);
-                    int posY = Integer.parseInt(arguments[1]);
-                    //We're changing argument for possible redo
-                    this.arguments[actualPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
-                    map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
-                    break;
-            }
+            doAction(actualPos, arguments);
             undos++;
             size--;
             actualPos = (actualPos - 1)%historyCap;
@@ -113,7 +129,15 @@ public class OfflineMapEditorController {
             if(undos == 0)
                 return;
             String[] arguments = this.arguments[newPos].split(";");
-            switch(historyTable[newPos]) {
+            doAction(newPos, arguments);
+            undos--;
+            size++;
+            actualPos = (actualPos + 1)%historyCap;
+            newPos = (newPos + 1)%historyCap;
+        }
+
+        private void doAction(int actionPos, String[] arguments) {
+            switch(historyTable[actionPos]) {
                 case paintTile:
                     int posX = Integer.parseInt(arguments[0]);
                     int posY = Integer.parseInt(arguments[1]);
@@ -122,10 +146,6 @@ public class OfflineMapEditorController {
                     map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
                     break;
             }
-            undos--;
-            size++;
-            actualPos = (actualPos + 1)%historyCap;
-            newPos = (newPos + 1)%historyCap;
         }
     }
 
@@ -153,11 +173,19 @@ public class OfflineMapEditorController {
     public MenuItem redoBtn;
 
     @FXML
+    public ToggleGroup mainToolbar;
+
+    @FXML
+    public ToggleButton drawToolButton;
+
+    @FXML
     public void initialize() {
         packageChoiceBox.getSelectionModel()
             .selectedItemProperty()
             .addListener((observableValue, o, t1) -> { changePackage();});
+        // Check whether there are packages to be loaded at the beginning
         updatePackages();
+        // This listener allows tiles to move with divider
         splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
             if((double)newVal < (double)oldVal) {
                 updateTilesLayout(1);
@@ -166,20 +194,22 @@ public class OfflineMapEditorController {
             if(!packageChosen)
                 return;
             if (maxInRow < (int) tilesChooseView.getWidth() / (tileSize + tilesGap)) {
-                if(log.isDebugEnabled()) {
-                    log.debug("Max in row = " + maxInRow);
-                    log.debug("New max in row = " + (int) (tilesChooseView.getWidth() + tilesGap) / tileSize);
-                    log.debug("Width = " + tilesChooseView.getWidth());
-                }
                 updateTilesLayout();
             }
         });
+        // Set default tool to start with
+        drawToolButton.setSelected(true);
+        currentAction = action.paintTile;
+        // Set few default squares to memory
+        Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"));
+        cachedImages.put("/images/defaultSquare.png", defaultSquare);
+        Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"));
+        cachedImages.put("/images/missingSquare.png", missingSquare);
     }
 
-    void setStage(Stage stage) {
-        this.stage = stage;
-    }
+    void setStage(Stage stage) { this.stage = stage; }
 
+    // Title should has a '*' whenever there are unsaved changes
     void updateTitle() {
         String name;
         if(saveLocation != null)
@@ -194,24 +224,23 @@ public class OfflineMapEditorController {
     void makeNewMap(int width, int height) {
         mapWidth = width;
         mapHeight = height;
-        Image exampleSquare = new Image(getClass().getResourceAsStream("/images/exampleSquare.png"));
-        cachedImages.put("/images/exampleSquare.png", exampleSquare);
         map = new MapSquare[width][height];
         for(int i = 0; i < width; i ++)
             for (int j = 0; j < height; j++) {
-                map[i][j] = setUpMapSquare(i, j, "/images/exampleSquare.png");
+                map[i][j] = setUpMapSquare(i, j);
                 mapView.getChildren().add(map[i][j]);
             }
     }
 
-    private MapSquare setUpMapSquare(int posY, int posX, String image) {
+    private MapSquare setUpMapSquare(int posY, int posX) {
         MapSquare mapSquare = new MapSquare(posX, posY);
-        mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
+        mapSquare.setGraphic(new ImageView(cachedImages.get("/images/defaultSquare.png")), "/images/defaultSquare.png");
         mapSquare.setLayoutX(posX * (tileSize + 1));
         mapSquare.setLayoutY(posY * (tileSize + 1));
         mapSquare.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
-                setMapSquareGraphic(posY, posX, mapSquare);
+                if(currentAction == action.paintTile)
+                    setMapSquareGraphic(posY, posX, mapSquare);
             }
         });
         mapSquare.setOnMouseDragged(mouseEvent -> {
@@ -222,7 +251,8 @@ public class OfflineMapEditorController {
         });
         mapSquare.setOnMouseDragOver(mouseDragEvent -> {
             if(mouseDragEvent.getButton() == MouseButton.PRIMARY) {
-                setMapSquareGraphic(posY, posX, mapSquare);
+                if(currentAction == action.paintTile)
+                    setMapSquareGraphic(posY, posX, mapSquare);
             }
         });
         return mapSquare;
@@ -234,6 +264,7 @@ public class OfflineMapEditorController {
         history.append(action.paintTile, arguments);
     }
 
+    // TODO Maybe this method is not necessary
     private void setMapSquareGraphic(double mousePosX, double mousePosY) {
         int posX, posY;
         posX = (int)mousePosX / (tileSize + tilesGap);
@@ -271,7 +302,7 @@ public class OfflineMapEditorController {
         mapView.setTranslateY(mouseEvent.getY());
     }
 
-    public void popUpNewMapSettings(ActionEvent actionEvent) {
+    public void popUpNewMapSettings() {
         popUpNewWindow("newMapSettings.fxml");
     }
 
@@ -394,6 +425,12 @@ public class OfflineMapEditorController {
                 return;
             }
         }
+        File file = chooseMapFile(true);
+        if(file != null)
+            saveMapToFile(file);
+    }
+
+    public File chooseMapFile(boolean saving) {
         FileChooser fileChooser = new FileChooser();
         File startingDirectory = new File("res/maps");
         boolean result = true;
@@ -403,12 +440,12 @@ public class OfflineMapEditorController {
         if(!result)
             startingDirectory = new File("c:/");
         fileChooser.setInitialDirectory(startingDirectory);
-        fileChooser.setInitialFileName("New map.txt");
+        if(saving)
+            fileChooser.setInitialFileName("New map.txt");
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
         fileChooser.getExtensionFilters().add(extFilter);
         File file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
-        if(file != null)
-            saveMapToFile(file);
+        return file;
     }
 
     //TODO add some exceptions for missing images or something

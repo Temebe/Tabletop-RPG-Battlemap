@@ -56,6 +56,16 @@
         </Menu>
       </menus>
     </MenuBar>
+    <ToolBar>
+      <items>
+        <ToggleButton fx:id="drawToolButton" mnemonicParsing="false" onAction="#setActionDrawing" selected="false" text="Draw" underline="false">
+          <toggleGroup>
+            <ToggleGroup fx:id="mainToolbar" />
+          </toggleGroup>
+        </ToggleButton>
+        <ToggleButton mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
+      </items>
+    </ToolBar>
     <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.34966592427616927" focusTraversable="true" onDragOver="#updateTilesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
       <items>
         <AnchorPane fx:id="tilesChooseView" blendMode="DARKEN" prefHeight="547.0" prefWidth="306.9998779296875">
