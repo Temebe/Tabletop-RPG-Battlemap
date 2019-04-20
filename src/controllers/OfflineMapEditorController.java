@@ -21,6 +21,7 @@ import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 //TODO Get rid of useless event parameters
@@ -88,8 +89,6 @@ public class OfflineMapEditorController {
         ruler,
     }
 
-    //FIXME drawing with one drag generates too much history
-    //FIXME throws exception after trying to do too many undos
     class History {
         public static final int historyCap = 50;
         private action[] historyTable = new action[historyCap];
@@ -97,6 +96,7 @@ public class OfflineMapEditorController {
         private int actualPos;
         private int newPos = 0;
         private int size = 0;
+        // amount of performed "undo" operations (important for possible redo)
         private int undos = 0;
 
         public void append(action action, String arguments) {
@@ -112,6 +112,8 @@ public class OfflineMapEditorController {
             undos = 0;
             changedMap = true;
             updateTitle();
+            if(log.isDebugEnabled())
+                log.debug(arguments + '\n' + "size: " + size);
         }
 
         public void undo() {
@@ -121,8 +123,12 @@ public class OfflineMapEditorController {
             doAction(actualPos, arguments);
             undos++;
             size--;
-            actualPos = (actualPos - 1)%historyCap;
-            newPos = (newPos - 1)%historyCap;
+            // Java's % operator doesn't work since it returns negative values, here's small workaround
+            actualPos = actualPos == 0 ? historyCap - 1 : actualPos - 1;
+            newPos = newPos == 0 ? historyCap - 1 : newPos - 1;
+            if(log.isDebugEnabled())
+                log.debug(Arrays.toString(arguments) + '\n'
+                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
         }
 
         public void redo() {
@@ -134,6 +140,9 @@ public class OfflineMapEditorController {
             size++;
             actualPos = (actualPos + 1)%historyCap;
             newPos = (newPos + 1)%historyCap;
+            if(log.isDebugEnabled())
+                log.debug(Arrays.toString(arguments) + '\n'
+                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
         }
 
         private void doAction(int actionPos, String[] arguments) {
@@ -141,15 +150,15 @@ public class OfflineMapEditorController {
                 case paintTile:
                     int posX = Integer.parseInt(arguments[0]);
                     int posY = Integer.parseInt(arguments[1]);
-                    //We're changing argument for possible undo
-                    this.arguments[newPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
+                    //We're changing argument for possible undo/redo
+                    this.arguments[actionPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
                     map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
                     break;
             }
         }
     }
 
-    History history = new History();
+    private History history = new History();
 
     //Extensions that Image class of javafx can handle
     private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
@@ -259,6 +268,9 @@ public class OfflineMapEditorController {
     }
 
     private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare) {
+        // Do not allow for setting same graphic over and over again
+        if(mapSquare.getImage().equals(currentImage))
+            return;
         String arguments = posX + ";" + posY + ";" + mapSquare.getImage();
         mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)), currentImage);
         history.append(action.paintTile, arguments);
