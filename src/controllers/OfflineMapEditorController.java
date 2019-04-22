@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,10 +15,12 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.shape.Line;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import main.MapSquare;
 import org.apache.log4j.Logger;
+import shapes.Arrow;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -54,6 +57,10 @@ public class OfflineMapEditorController {
     private final KeyCombination newMapComb =
             new KeyCodeCombination(KeyCode.N, KeyCombination.CONTROL_DOWN);
     private action currentAction;
+    private Arrow arrow;
+    // Variable which remembers where arrow started
+    private MapSquare arrowBegin = null;
+    private MapSquare arrowEnd = null;
 
     public void undo() { history.undo(); }
 
@@ -241,6 +248,7 @@ public class OfflineMapEditorController {
             }
     }
 
+    //TODO think of reducing ifs and this whole method
     private MapSquare setUpMapSquare(int posY, int posX) {
         MapSquare mapSquare = new MapSquare(posX, posY);
         mapSquare.setGraphic(new ImageView(cachedImages.get("/images/defaultSquare.png")), "/images/defaultSquare.png");
@@ -255,14 +263,24 @@ public class OfflineMapEditorController {
         mapSquare.setOnMouseDragged(mouseEvent -> {
             if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent);
         });
-        mapSquare.setOnDragDetected(mouseEvent -> {
-            mapSquare.startFullDrag();
-        });
+        mapSquare.setOnDragDetected(mouseEvent -> mapSquare.startFullDrag());
         mapSquare.setOnMouseDragOver(mouseDragEvent -> {
             if(mouseDragEvent.getButton() == MouseButton.PRIMARY) {
                 if(currentAction == action.paintTile)
                     setMapSquareGraphic(posY, posX, mapSquare);
+                if(currentAction == action.ruler) {
+                    if (arrowBegin == null) {
+                        arrowBegin = mapSquare;
+                        makeArrow();
+                    }
+                    moveArrow(mapSquare);
+                }
             }
+        });
+        mapSquare.setOnMouseDragReleased(mouseDragEvent -> {
+            arrowBegin = null;
+            arrowEnd = null;
+            mapView.getChildren().remove(arrow);
         });
         return mapSquare;
     }
@@ -306,6 +324,26 @@ public class OfflineMapEditorController {
         for (Button tile : tilesMap) {
             tile.setEffect(null);
         }
+    }
+
+    // As we create our new arrow we assume that it starts and ends in same tile
+    private void makeArrow() {
+        double posX = arrowBegin.getLayoutX() + (double)(tileSize / 2);
+        double posY = arrowBegin.getLayoutY() + (double)(tileSize / 2);
+        arrow = new Arrow(posX, posY, posX, posY);
+        mapView.getChildren().add(arrow);
+        log.debug("Make!" + posX + " " + posY);
+    }
+
+    // We're only moving an arrow head thus we need only end position
+    private void moveArrow(MapSquare end) {
+        if(end == arrowEnd)
+            return;
+        arrowEnd = end;
+        double endX = arrowEnd.getLayoutX() + (double)(tileSize / 2);
+        double endY = arrowEnd.getLayoutY() + (double)(tileSize / 2);
+        arrow.setEndPos(endX, endY);
+        log.debug("Move!" + endX + " " + endY);
     }
 
     public void moveCamera(MouseEvent mouseEvent) {
