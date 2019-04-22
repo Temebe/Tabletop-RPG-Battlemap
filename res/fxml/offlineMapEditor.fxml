@@ -58,25 +58,55 @@
     </MenuBar>
     <ToolBar>
       <items>
-        <ToggleButton fx:id="drawToolButton" mnemonicParsing="false" onAction="#setActionDrawing" selected="false" text="Draw" underline="false">
+        <ToggleButton mnemonicParsing="false" onAction="#setActionStandard" text="Standard" underline="false">
           <toggleGroup>
             <ToggleGroup fx:id="mainToolbar" />
           </toggleGroup>
         </ToggleButton>
+        <ToggleButton fx:id="drawToolButton" mnemonicParsing="false" onAction="#setActionDrawing" selected="false" text="Draw" toggleGroup="$mainToolbar" underline="false" />
         <ToggleButton mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
       </items>
     </ToolBar>
-    <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.34966592427616927" focusTraversable="true" onDragOver="#updateTilesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
+    <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.39420935412026725" focusTraversable="true" onDragOver="#updateTilesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
       <items>
-        <AnchorPane fx:id="tilesChooseView" blendMode="DARKEN" prefHeight="547.0" prefWidth="306.9998779296875">
-          <children>
-            <ChoiceBox fx:id="packageChoiceBox" blendMode="OVERLAY" layoutX="14.0" layoutY="14.0" onContextMenuRequested="#changePackage" prefWidth="283.0">
-              <items>
-                <FXCollections fx:factory="observableArrayList" />
-              </items>
-            </ChoiceBox>
-          </children>
-        </AnchorPane>
+        <TabPane prefHeight="508.0" prefWidth="231.0" tabClosingPolicy="UNAVAILABLE">
+          <tabs>
+            <Tab closable="false" text="TILES">
+              <content>
+                <ScrollPane id="ScrollPane" fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" prefViewportHeight="467.0" prefViewportWidth="351.0" vbarPolicy="AS_NEEDED">
+                  <content>
+                    <AnchorPane id="Content" fx:id="tilesChooseView" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                      <children>
+                        <ChoiceBox fx:id="tilesPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" onContextMenuRequested="#changePackage" prefWidth="283.0">
+                          <items>
+                            <FXCollections fx:factory="observableArrayList" />
+                          </items>
+                        </ChoiceBox>
+                      </children>
+                    </AnchorPane>
+                  </content>
+                </ScrollPane>
+              </content>
+            </Tab>
+            <Tab closable="false" text="CHARACTERS">
+              <content>
+                <ScrollPane id="ScrollPane" fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" prefViewportHeight="467.0" prefViewportWidth="351.0" vbarPolicy="AS_NEEDED">
+                  <content>
+                    <AnchorPane id="Content" fx:id="charactersChooseView" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                      <children>
+                        <ChoiceBox id="charactersPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" onContextMenuRequested="#changePackage" prefWidth="283.0">
+                          <items>
+                            <FXCollections fx:factory="observableArrayList" />
+                          </items>
+                        </ChoiceBox>
+                      </children>
+                    </AnchorPane>
+                  </content>
+                </ScrollPane>
+              </content>
+            </Tab>
+          </tabs>
+        </TabPane>
         <ScrollPane pickOnBounds="true" prefHeight="-1.0" prefWidth="-1.0">
           <content>
             <AnchorPane id="Content" fx:id="mapView" focusTraversable="false" minHeight="-1.0" minWidth="-1.0" onMouseDragged="#moveCamera" prefHeight="545.0" prefWidth="840.0" visible="true" />

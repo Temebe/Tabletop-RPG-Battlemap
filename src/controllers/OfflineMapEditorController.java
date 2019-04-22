@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -15,7 +14,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.shape.Line;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import main.MapSquare;
@@ -74,6 +72,11 @@ public class OfflineMapEditorController {
         currentAction = action.ruler;
     }
 
+    public void setActionStandard() {
+        currentAction = action.standard;
+    }
+
+    // This method is for actions that needs to be made at the very beginning of stage's presence
     public void setUpStage() {
         if(log.isDebugEnabled()) log.debug("Setting stage up");
         // UNDO
@@ -92,6 +95,7 @@ public class OfflineMapEditorController {
     }
 
     public enum action {
+        standard,
         paintTile,
         ruler,
     }
@@ -180,7 +184,7 @@ public class OfflineMapEditorController {
     private AnchorPane mapView;
 
     @FXML
-    private ChoiceBox packageChoiceBox;
+    private ChoiceBox tilesPgChoiceBox;
 
     @FXML
     public MenuItem undoBtn;
@@ -196,7 +200,7 @@ public class OfflineMapEditorController {
 
     @FXML
     public void initialize() {
-        packageChoiceBox.getSelectionModel()
+        tilesPgChoiceBox.getSelectionModel()
             .selectedItemProperty()
             .addListener((observableValue, o, t1) -> { changePackage();});
         // Check whether there are packages to be loaded at the beginning
@@ -217,16 +221,18 @@ public class OfflineMapEditorController {
         drawToolButton.setSelected(true);
         currentAction = action.paintTile;
         // Set few default squares to memory
-        Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"));
+        Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"),
+                tileSize, tileSize, false, false);
         cachedImages.put("/images/defaultSquare.png", defaultSquare);
-        Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"));
+        Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"),
+                tileSize, tileSize, false, false);
         cachedImages.put("/images/missingSquare.png", missingSquare);
     }
 
     void setStage(Stage stage) { this.stage = stage; }
 
     // Title should has a '*' whenever there are unsaved changes
-    void updateTitle() {
+    private void updateTitle() {
         String name;
         if(saveLocation != null)
             name = saveLocation.getName();
@@ -308,7 +314,7 @@ public class OfflineMapEditorController {
         Button tile = new Button();
         tile.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
         if(!cachedImages.containsKey(image))
-            cachedImages.put(image, new Image(getClass().getResourceAsStream(image)));
+            cachedImages.put(image, new Image(getClass().getResourceAsStream(image), tileSize, tileSize, false, false));
         tile.setGraphic(new ImageView(cachedImages.get(image)));
         tile.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
@@ -382,18 +388,19 @@ public class OfflineMapEditorController {
     }
 
 
-    //TODO Make sure /res/packages is always created
+
+    //TODO Make sure /res/packages/tiles is always created
     //TODO Make this String[] -> observable list -> items prettier
     //TODO When current package folder is deleted, there is error
     public void updatePackages() {
-        File file = new File("res/packages");
+        File file = new File("res/packages/tiles");
         String[] packages = file.list((current, name) -> new File(current, name).isDirectory());
         if(packages == null) {
             popUpError("Lorem ipsum");
             return;
         }
         ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
-        packageChoiceBox.setItems(packagesList);
+        tilesPgChoiceBox.setItems(packagesList);
         clearTilesLayout();
     }
 
@@ -404,11 +411,11 @@ public class OfflineMapEditorController {
     }
 
     // This function sets tiles of chosen package so user can use them
-    //TODO Throw if sb deleted res/packages while program works
+    //TODO Throw if sb deleted res/packages/tiles while program works
     public void changePackage() {
-        if(packageChoiceBox.getValue() == null)
+        if(tilesPgChoiceBox.getValue() == null)
             return;
-        File packagesDir = new File("res/packages/" + packageChoiceBox.getValue());
+        File packagesDir = new File("res/packages/tiles/" + tilesPgChoiceBox.getValue());
         FileFilter filter = pathname -> hasProperExtension(pathname.getName());
         File[] tiles = packagesDir.listFiles(filter);
 
@@ -417,7 +424,7 @@ public class OfflineMapEditorController {
         if(tiles == null)
             return;
         for(int i = 0; i < tiles.length; i++) {
-            tile = setUpTile("/packages/" + packageChoiceBox.getValue() + "/" + tiles[i].getName());
+            tile = setUpTile("/packages/tiles/" + tilesPgChoiceBox.getValue() + "/" + tiles[i].getName());
             tilesMap.add(tile);
             tilesChooseView.getChildren().add(tile);
         }
@@ -456,6 +463,9 @@ public class OfflineMapEditorController {
             if(i == 0)
                 j++;
         }
+        // Resize anchor pane so all tiles will be reachable
+        Button lastTile = tilesMap.get(tilesMap.size() - 1);
+        tilesChooseView.setMinHeight(lastTile.getLayoutY() + tileSize);
     }
 
     // Special function for "Save as" button which forces FileChooser to open
