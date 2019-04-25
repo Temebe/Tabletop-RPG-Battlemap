@@ -65,9 +65,11 @@
         </ToggleButton>
         <ToggleButton fx:id="drawToolButton" mnemonicParsing="false" onAction="#setActionDrawing" selected="false" text="Draw" toggleGroup="$mainToolbar" underline="false" />
         <ToggleButton mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
+        <ToggleButton mnemonicParsing="false" onAction="#setActionErase" text="Eraser" toggleGroup="$mainToolbar" />
+        <ToggleButton fx:id="secondLayerTglBtn" mnemonicParsing="false" text="Second Layer" />
       </items>
     </ToolBar>
-    <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.39420935412026725" focusTraversable="true" onDragOver="#updateTilesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
+    <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.39420935412026725" focusTraversable="true" onDragOver="#updatePackagesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
       <items>
         <TabPane prefHeight="508.0" prefWidth="231.0" tabClosingPolicy="UNAVAILABLE">
           <tabs>
@@ -77,7 +79,7 @@
                   <content>
                     <AnchorPane id="Content" fx:id="tilesChooseView" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                       <children>
-                        <ChoiceBox fx:id="tilesPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" onContextMenuRequested="#changePackage" prefWidth="283.0">
+                        <ChoiceBox fx:id="tilesPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" prefWidth="283.0">
                           <items>
                             <FXCollections fx:factory="observableArrayList" />
                           </items>
@@ -94,7 +96,7 @@
                   <content>
                     <AnchorPane id="Content" fx:id="charactersChooseView" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                       <children>
-                        <ChoiceBox id="charactersPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" onContextMenuRequested="#changePackage" prefWidth="283.0">
+                        <ChoiceBox fx:id="charactersPgChoiceBox" blendMode="SRC_OVER" layoutX="34.0" layoutY="14.0" prefWidth="283.0">
                           <items>
                             <FXCollections fx:factory="observableArrayList" />
                           </items>

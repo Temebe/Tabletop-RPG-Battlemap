@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 //TODO Get rid of useless event parameters
+//TODO Make two layers of firstLayer
 public class OfflineMapEditorController {
 
     private static final Logger log = Logger.getLogger(OfflineMapEditorController.class);
@@ -34,8 +35,10 @@ public class OfflineMapEditorController {
     static final int tileStartingPosY = 30;
     int maxInRow;
     private boolean packageChosen = false;
-    private MapSquare[][] map;
-    private ArrayList<Button> tilesMap = new ArrayList<>();
+    private MapSquare[][] firstLayer;
+    private MapSquare[][] secondLayer;
+    private ArrayList<Button> tilesList = new ArrayList<>();
+    private ArrayList<Button> charactersList = new ArrayList<>();
     private HashMap<String, Image> cachedImages = new HashMap<>();
     private String currentImage = "/images/exampleSquare2.png";
     private String selectedPackage;
@@ -44,6 +47,7 @@ public class OfflineMapEditorController {
     private int mapWidth;
     private boolean mapSet = false;
     private boolean changedMap = false;
+    private boolean secondLayerVisible = true;
     private File saveLocation = null;
     private Stage stage;
     private final KeyCombination undoComb =
@@ -60,6 +64,8 @@ public class OfflineMapEditorController {
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
 
+    public enum packageType { characters, tiles }
+
     public void undo() { history.undo(); }
 
     public void redo() { history.redo(); }
@@ -74,6 +80,11 @@ public class OfflineMapEditorController {
 
     public void setActionStandard() {
         currentAction = action.standard;
+        disableLayers(false, false);
+    }
+
+    public void setActionErase() {
+        currentAction = action.erase;
     }
 
     // This method is for actions that needs to be made at the very beginning of stage's presence
@@ -98,6 +109,7 @@ public class OfflineMapEditorController {
         standard,
         paintTile,
         ruler,
+        erase,
     }
 
     class History {
@@ -161,9 +173,15 @@ public class OfflineMapEditorController {
                 case paintTile:
                     int posX = Integer.parseInt(arguments[0]);
                     int posY = Integer.parseInt(arguments[1]);
+                    int layer = Integer.parseInt(arguments[3]);
+                    MapSquare square = layer == 1 ? firstLayer[posY][posX] : secondLayer[posY][posX];
                     //We're changing argument for possible undo/redo
-                    this.arguments[actionPos] = posX + ";" + posY + ";" + map[posY][posX].getImage();
-                    map[posY][posX].setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
+                    this.arguments[actionPos] =
+                            posX + ";"
+                            + posY + ";"
+                            + firstLayer[posY][posX].getImage() + ";"
+                            + layer;
+                    square.setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
                     break;
             }
         }
@@ -173,6 +191,9 @@ public class OfflineMapEditorController {
 
     //Extensions that Image class of javafx can handle
     private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
+
+    @FXML
+    public AnchorPane charactersChooseView;
 
     @FXML
     public AnchorPane tilesChooseView;
@@ -187,6 +208,9 @@ public class OfflineMapEditorController {
     private ChoiceBox tilesPgChoiceBox;
 
     @FXML
+    public ChoiceBox charactersPgChoiceBox;
+
+    @FXML
     public MenuItem undoBtn;
 
     @FXML
@@ -199,22 +223,25 @@ public class OfflineMapEditorController {
     public ToggleButton drawToolButton;
 
     @FXML
+    public ToggleButton secondLayerTglBtn;
+
+    @FXML
     public void initialize() {
         tilesPgChoiceBox.getSelectionModel()
             .selectedItemProperty()
-            .addListener((observableValue, o, t1) -> { changePackage();});
+            .addListener((observableValue, o, t1) -> { changePackage(packageType.tiles); });
         // Check whether there are packages to be loaded at the beginning
         updatePackages();
         // This listener allows tiles to move with divider
         splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
             if((double)newVal < (double)oldVal) {
-                updateTilesLayout(1);
+                updatePackagesLayout(1);
                 return;
             }
             if(!packageChosen)
                 return;
             if (maxInRow < (int) tilesChooseView.getWidth() / (tileSize + tilesGap)) {
-                updateTilesLayout();
+                updatePackagesLayout();
             }
         });
         // Set default tool to start with
@@ -227,6 +254,14 @@ public class OfflineMapEditorController {
         Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"),
                 tileSize, tileSize, false, false);
         cachedImages.put("/images/missingSquare.png", missingSquare);
+        Image transparent = new Image(getClass().getResourceAsStream("/images/transparent.png"),
+                tileSize, tileSize, false, false);
+        cachedImages.put("/images/transparent.png", transparent);
+
+        secondLayerTglBtn.setOnAction(actionEvent -> {
+            secondLayerVisible = secondLayerTglBtn.isSelected();
+            disableLayers(secondLayerVisible, !secondLayerVisible);
+        });
     }
 
     void setStage(Stage stage) { this.stage = stage; }
@@ -243,23 +278,27 @@ public class OfflineMapEditorController {
         stage.setTitle(String.format("%s - Tabletop RPG Battlemap", name));
     }
 
+    // It may be confusing but first layer is actually the one under
     void makeNewMap(int width, int height) {
         mapWidth = width;
         mapHeight = height;
-        map = new MapSquare[width][height];
+        firstLayer = new MapSquare[width][height];
+        secondLayer = new MapSquare[width][height];
         for(int i = 0; i < width; i ++)
             for (int j = 0; j < height; j++) {
-                map[i][j] = setUpMapSquare(i, j);
-                mapView.getChildren().add(map[i][j]);
+                firstLayer[i][j] = setUpMapSquare(i, j, "/images/defaultSquare.png", 1);
+                secondLayer[i][j] = setUpMapSquare(i, j, "/images/transparent.png", 2);
+                mapView.getChildren().add(firstLayer[i][j]);
+                mapView.getChildren().add(secondLayer[i][j]);
             }
     }
 
     //TODO think of reducing ifs and this whole method
-    private MapSquare setUpMapSquare(int posY, int posX) {
-        MapSquare mapSquare = new MapSquare(posX, posY);
-        mapSquare.setGraphic(new ImageView(cachedImages.get("/images/defaultSquare.png")), "/images/defaultSquare.png");
-        mapSquare.setLayoutX(posX * (tileSize + 1));
-        mapSquare.setLayoutY(posY * (tileSize + 1));
+    private MapSquare setUpMapSquare(int posY, int posX, String image, int layer) {
+        MapSquare mapSquare = new MapSquare(posX, posY, layer);
+        mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
+        mapSquare.setLayoutX(posX * tileSize);
+        mapSquare.setLayoutY(posY * tileSize);
         mapSquare.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
                 if(currentAction == action.paintTile)
@@ -281,6 +320,8 @@ public class OfflineMapEditorController {
                     }
                     moveArrow(mapSquare);
                 }
+                if(currentAction == action.erase)
+                    setMapSquareGraphic(posY, posX, mapSquare, "images/transparent.png");
             }
         });
         mapSquare.setOnMouseDragReleased(mouseDragEvent -> {
@@ -292,11 +333,15 @@ public class OfflineMapEditorController {
     }
 
     private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare) {
+        setMapSquareGraphic(posY, posX, mapSquare, currentImage);
+    }
+
+    private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare, String image) {
         // Do not allow for setting same graphic over and over again
-        if(mapSquare.getImage().equals(currentImage))
+        if(mapSquare.getImage().equals(image))
             return;
-        String arguments = posX + ";" + posY + ";" + mapSquare.getImage();
-        mapSquare.setGraphic(new ImageView(cachedImages.get(currentImage)), currentImage);
+        String arguments = posX + ";" + posY + ";" + mapSquare.getImage() + ";" + mapSquare.getLayer();
+        mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
         history.append(action.paintTile, arguments);
     }
 
@@ -307,7 +352,7 @@ public class OfflineMapEditorController {
         posY = (int)mousePosY / (tileSize + tilesGap);
         if((posX > mapWidth) || (posY > mapHeight))
             return;
-        setMapSquareGraphic(posY, posX, map[posY][posX]);
+        setMapSquareGraphic(posY, posX, firstLayer[posY][posX]);
     }
 
     private Button setUpTile(String image) {
@@ -327,7 +372,7 @@ public class OfflineMapEditorController {
     }
 
     private void uncheckTiles() {
-        for (Button tile : tilesMap) {
+        for (Button tile : tilesList) {
             tile.setEffect(null);
         }
     }
@@ -387,49 +432,79 @@ public class OfflineMapEditorController {
         return controller;
     }
 
-
-
-    //TODO Make sure /res/packages/tiles is always created
-    //TODO Make this String[] -> observable list -> items prettier
-    //TODO When current package folder is deleted, there is error
-    public void updatePackages() {
-        File file = new File("res/packages/tiles");
-        String[] packages = file.list((current, name) -> new File(current, name).isDirectory());
-        if(packages == null) {
-            popUpError("Lorem ipsum");
-            return;
-        }
-        ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
-        tilesPgChoiceBox.setItems(packagesList);
-        clearTilesLayout();
-    }
-
     public void popUpError(String errorMsg) {
         ErrorPopUpController controller =
                 (ErrorPopUpController)popUpNewWindow("errorPopUp.fxml", "Error");
         controller.setErrorMsg(errorMsg);
     }
 
+    // If package type is not specified we just update both types
+    public void updatePackages() {
+        updatePackages(packageType.characters);
+        updatePackages(packageType.tiles);
+    }
+
+    //TODO Make sure /res/packages/tiles is always created
+    //TODO Make this String[] -> observable list -> items prettier
+    //TODO When current package folder is deleted, there is error
+    public void updatePackages(packageType type) {
+        File file;
+        ChoiceBox choiceBox;
+        if(type == packageType.characters) {
+            file = new File("res/packages/characters");
+            choiceBox = charactersPgChoiceBox;
+        }
+        else {
+            file = new File("res/packages/tiles");
+            choiceBox = tilesPgChoiceBox;
+        }
+        String[] packages = file.list((current, name) -> new File(current, name).isDirectory());
+        if(packages == null) {
+            popUpError("Lorem ipsum");
+            return;
+        }
+        ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
+        choiceBox.setItems(packagesList);
+        clearPackagesLayout(type);
+    }
     // This function sets tiles of chosen package so user can use them
     //TODO Throw if sb deleted res/packages/tiles while program works
-    public void changePackage() {
-        if(tilesPgChoiceBox.getValue() == null)
+    public void changePackage(packageType type) {
+        ChoiceBox choiceBox;
+        AnchorPane chooseView;
+        ArrayList<Button> list;
+        String path;
+        if(type == packageType.characters) {
+            choiceBox = charactersPgChoiceBox;
+            chooseView = charactersChooseView;
+            list = charactersList;
+            path = "/packages/characters/";
+        }
+        else {
+            choiceBox = tilesPgChoiceBox;
+            chooseView = tilesChooseView;
+            list = tilesList;
+            path = "/packages/tiles/";
+        }
+
+        if(choiceBox.getValue() == null)
             return;
-        File packagesDir = new File("res/packages/tiles/" + tilesPgChoiceBox.getValue());
+        File packagesDir = new File("res" + path + choiceBox.getValue());
         FileFilter filter = pathname -> hasProperExtension(pathname.getName());
         File[] tiles = packagesDir.listFiles(filter);
 
         Button tile;
-        clearTilesLayout();
+        clearPackagesLayout(type);
         if(tiles == null)
             return;
+
         for(int i = 0; i < tiles.length; i++) {
-            tile = setUpTile("/packages/tiles/" + tilesPgChoiceBox.getValue() + "/" + tiles[i].getName());
-            tilesMap.add(tile);
-            tilesChooseView.getChildren().add(tile);
+            tile = setUpTile(path + choiceBox.getValue() + "/" + tiles[i].getName());
+            list.add(tile);
+            chooseView.getChildren().add(tile);
         }
         packageChosen = true;
-        updateTilesLayout();
+        updatePackagesLayout(type);
     }
 
     // Function that checks whether file's name include proper extension for graphics
@@ -443,20 +518,52 @@ public class OfflineMapEditorController {
         return false;
     }
 
-    public void clearTilesLayout() {
-        for(Button tile : tilesMap) tilesChooseView.getChildren().remove(tile);
-        tilesMap.clear();
+    public void clearPackagesLayout(packageType type) {
+        ArrayList<Button> list;
+        AnchorPane chooseView;
+        if(type == packageType.characters) {
+            list = charactersList;
+            chooseView = charactersChooseView;
+        }
+        else {
+            list = tilesList;
+            chooseView = tilesChooseView;
+        }
+
+        for(Button btn : list) chooseView.getChildren().remove(btn);
+        list.clear();
     }
 
-    public void updateTilesLayout() {
-        updateTilesLayout(0);
+    public void updatePackagesLayout() {
+        updatePackagesLayout(0, packageType.characters);
+        updatePackagesLayout(0, packageType.tiles);
     }
 
-    public void updateTilesLayout(int decreaseRowValue) {
-        maxInRow = (int)(tilesChooseView.getWidth() / (tileSize + tilesGap)) - decreaseRowValue;
+    public void updatePackagesLayout(packageType type) {
+        updatePackagesLayout(0, type);
+    }
+
+    public void updatePackagesLayout(int decreaseRowValue) {
+        updatePackagesLayout(0, packageType.characters);
+        updatePackagesLayout(0, packageType.tiles);
+    }
+
+    public void updatePackagesLayout(int decreaseRowValue, packageType type) {
+        ArrayList<Button> list;
+        AnchorPane chooseView;
+        if(type == packageType.characters) {
+            list = charactersList;
+            chooseView = charactersChooseView;
+        }
+        else {
+            list = tilesList;
+            chooseView = tilesChooseView;
+        }
+
+        maxInRow = (int)(chooseView.getWidth() / (tileSize + tilesGap)) - decreaseRowValue;
         int i = 0;
         int j = 0;
-        for (Button tile : tilesMap) {
+        for (Button tile : list) {
             tile.setLayoutX(i * (tileSize + tilesGap));
             tile.setLayoutY((j + 1) * (tileSize + tilesGap));
             i = (i+1)%maxInRow;
@@ -464,8 +571,23 @@ public class OfflineMapEditorController {
                 j++;
         }
         // Resize anchor pane so all tiles will be reachable
-        Button lastTile = tilesMap.get(tilesMap.size() - 1);
-        tilesChooseView.setMinHeight(lastTile.getLayoutY() + tileSize);
+        Button lastTile = list.get(list.size() - 1);
+        chooseView.setMinHeight(lastTile.getLayoutY() + tileSize);
+    }
+
+    // TODO Think about better name
+    // Method that enables user to change only one layer at once
+    public void disableLayers(Boolean first, Boolean second) {
+        for (MapSquare row[] : secondLayer) {
+            for (MapSquare square: row) {
+                square.setDisable(second);
+            }
+        }
+        for (MapSquare row[] : firstLayer) {
+            for (MapSquare square: row) {
+                square.setDisable(first);
+            }
+        }
     }
 
     // Special function for "Save as" button which forces FileChooser to open
@@ -478,7 +600,7 @@ public class OfflineMapEditorController {
     }
 
     public void saveMap(boolean forceFileChooser) {
-        // Check if map is not saved already nor user is forcing fileChooser
+        // Check if firstLayer is not saved already nor user is forcing fileChooser
         if(saveLocation != null && !forceFileChooser) {
             if(saveLocation.exists()) {
                 saveMapToFile(saveLocation);
@@ -501,7 +623,7 @@ public class OfflineMapEditorController {
             startingDirectory = new File("c:/");
         fileChooser.setInitialDirectory(startingDirectory);
         if(saving)
-            fileChooser.setInitialFileName("New map.txt");
+            fileChooser.setInitialFileName("New firstLayer.txt");
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
         fileChooser.getExtensionFilters().add(extFilter);
         File file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
@@ -518,7 +640,7 @@ public class OfflineMapEditorController {
             log.error(e.getStackTrace());
             return;
         }
-        for (MapSquare[] squaresLine : map) {
+        for (MapSquare[] squaresLine : firstLayer) {
             for (MapSquare square : squaresLine) {
                 writer.println(square.getImage());
                 if(log.isDebugEnabled()) log.debug(square.getImage());
