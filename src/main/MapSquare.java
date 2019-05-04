@@ -5,7 +5,7 @@ import javafx.scene.control.Button;
 import javafx.scene.image.ImageView;
 
 public class MapSquare extends Button {
-    private String image;
+    private String imagePath;
     private double posX;
     private double posY;
     private int layer;
@@ -19,11 +19,11 @@ public class MapSquare extends Button {
 
     public void setGraphic(ImageView imageView, String image) {
         setGraphic(imageView);
-        this.image = image;
+        this.imagePath = image;
     }
 
-    public String getImage() {
-        return image;
+    public String getImagePath() {
+        return imagePath;
     }
 
 

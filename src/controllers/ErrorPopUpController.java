@@ -1,10 +1,9 @@
 package controllers;
 
-import javafx.event.ActionEvent;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-public class ErrorPopUpController extends popUpController{
+public class ErrorPopUpController extends PopUpController {
 
 
     public Text errorText;
@@ -12,7 +11,7 @@ public class ErrorPopUpController extends popUpController{
     public void setErrorMsg(String errorMsg) {
         errorText.setText(errorMsg);
     }
-    public void cancel(ActionEvent actionEvent) {
+    public void cancel() {
         Stage stage = (Stage) errorText.getScene().getWindow();
         stage.close();
     }

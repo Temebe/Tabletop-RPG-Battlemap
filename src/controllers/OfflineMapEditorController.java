@@ -3,7 +3,6 @@ package controllers;
 import com.google.gson.Gson;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,11 +13,14 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Paint;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import main.CharacterSquare;
 import main.MapSquare;
 import org.apache.log4j.Logger;
 import shapes.Arrow;
+import shapes.StatusBar;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -31,16 +33,18 @@ public class OfflineMapEditorController {
 
     private static final Logger log = Logger.getLogger(OfflineMapEditorController.class);
     static final int tilesGap = 10;
-    static final int tileSize = 50;
+    public static final int tileSize = 50;
     static final int tileStartingPosY = 30;
     int maxInRow;
     private boolean packageChosen = false;
     private MapSquare[][] firstLayer;
     private MapSquare[][] secondLayer;
     private ArrayList<Button> tilesList = new ArrayList<>();
-    private ArrayList<Button> charactersList = new ArrayList<>();
+    private ArrayList<Button> charactersTilesList = new ArrayList<>();
+    private ArrayList<CharacterSquare> charactersList = new ArrayList<>();
     private HashMap<String, Image> cachedImages = new HashMap<>();
-    private String currentImage = "/images/exampleSquare2.png";
+    private String currentTilePath = "/images/exampleSquare2.png";
+    private String currentCharacterPath = "/images/exampleSquare2.png";
     private String selectedPackage;
     private Gson gson = new Gson();
     private int mapHeight;
@@ -48,6 +52,7 @@ public class OfflineMapEditorController {
     private boolean mapSet = false;
     private boolean changedMap = false;
     private boolean secondLayerVisible = true;
+    private boolean characterTileChosen = false;
     private File saveLocation = null;
     private Stage stage;
     private final KeyCombination undoComb =
@@ -179,7 +184,7 @@ public class OfflineMapEditorController {
                     this.arguments[actionPos] =
                             posX + ";"
                             + posY + ";"
-                            + firstLayer[posY][posX].getImage() + ";"
+                            + firstLayer[posY][posX].getImagePath() + ";"
                             + layer;
                     square.setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
                     break;
@@ -226,10 +231,16 @@ public class OfflineMapEditorController {
     public ToggleButton secondLayerTglBtn;
 
     @FXML
+    public ToggleButton characterVisibilityButton;
+
+    @FXML
     public void initialize() {
         tilesPgChoiceBox.getSelectionModel()
             .selectedItemProperty()
             .addListener((observableValue, o, t1) -> { changePackage(packageType.tiles); });
+        charactersPgChoiceBox.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((observableValue, o, t1) -> { changePackage(packageType.characters); });
         // Check whether there are packages to be loaded at the beginning
         updatePackages();
         // This listener allows tiles to move with divider
@@ -278,8 +289,33 @@ public class OfflineMapEditorController {
         stage.setTitle(String.format("%s - Tabletop RPG Battlemap", name));
     }
 
+    @FXML
+    void closeMap() {
+        if(!mapSet) {
+            popUpError("No map is opened!");
+            return;
+        }
+        for(MapSquare[] row: firstLayer) {
+            for(MapSquare square: row) {
+                mapView.getChildren().remove(square);
+            }
+        }
+        for(MapSquare[] row: secondLayer) {
+            for(MapSquare square: row) {
+                mapView.getChildren().remove(square);
+            }
+        }
+        for(Button character : charactersTilesList) {
+            mapView.getChildren().remove(character);
+        }
+        mapSet = false;
+    }
+
     // It may be confusing but first layer is actually the one under
     void makeNewMap(int width, int height) {
+        if(mapSet) {
+            popUpError("Close existing map in order to set new one!");
+        }
         mapWidth = width;
         mapHeight = height;
         firstLayer = new MapSquare[width][height];
@@ -291,6 +327,9 @@ public class OfflineMapEditorController {
                 mapView.getChildren().add(firstLayer[i][j]);
                 mapView.getChildren().add(secondLayer[i][j]);
             }
+        saveLocation = null;
+        updateTitle();
+        mapSet = true;
     }
 
     //TODO think of reducing ifs and this whole method
@@ -303,6 +342,9 @@ public class OfflineMapEditorController {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
                 if(currentAction == action.paintTile)
                     setMapSquareGraphic(posY, posX, mapSquare);
+                if((currentAction == action.standard) && characterTileChosen) {
+                    putCharacterOnSquare(mapSquare);
+                }
             }
         });
         mapSquare.setOnMouseDragged(mouseEvent -> {
@@ -333,14 +375,14 @@ public class OfflineMapEditorController {
     }
 
     private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare) {
-        setMapSquareGraphic(posY, posX, mapSquare, currentImage);
+        setMapSquareGraphic(posY, posX, mapSquare, currentTilePath);
     }
 
     private void setMapSquareGraphic(int posY, int posX, MapSquare mapSquare, String image) {
         // Do not allow for setting same graphic over and over again
-        if(mapSquare.getImage().equals(image))
+        if(mapSquare.getImagePath().equals(image))
             return;
-        String arguments = posX + ";" + posY + ";" + mapSquare.getImage() + ";" + mapSquare.getLayer();
+        String arguments = posX + ";" + posY + ";" + mapSquare.getImagePath() + ";" + mapSquare.getLayer();
         mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
         history.append(action.paintTile, arguments);
     }
@@ -355,24 +397,102 @@ public class OfflineMapEditorController {
         setMapSquareGraphic(posY, posX, firstLayer[posY][posX]);
     }
 
-    private Button setUpTile(String image) {
+    private void putCharacterOnSquare(MapSquare mapSquare) {
+        ImageView imageView = new ImageView(cachedImages.get(currentCharacterPath));
+        int width = (int)imageView.getImage().getWidth()%tileSize;
+        int height = (int)imageView.getImage().getHeight()%tileSize;
+        // First we need to check whether character can fit in chosen spot
+        if((width < (mapSquare.getPosX() - 1)) || (height < (mapSquare.getPosY() - 1))) {
+            popUpError("Character won't fit in this spot!");
+        }
+        // Probably unnecessary condition
+//        for(Button btn: charactersList) {
+//            CharacterSquare character = (CharacterSquare)btn;
+//            if((character.getPosX() == mapSquare.getPosX()) || (character.getPosY() == mapSquare.getPosY())) {
+//                popUpError("There is already character placed!");
+//                return;
+//            }
+//        }
+        CharacterSquare characterSquare = new CharacterSquare(mapSquare.getPosX(), mapSquare.getPosY(), mapView);
+        setUpCharacter(characterSquare);
+    }
+
+    private void setUpCharacter(CharacterSquare characterSquare) {
+        characterSquare.setLayoutX(characterSquare.getPosX() * tileSize);
+        characterSquare.setLayoutY(characterSquare.getPosY() * tileSize);
+        characterSquare.setGraphic(new ImageView(cachedImages.get(currentCharacterPath)), currentCharacterPath);
+        mapView.getChildren().add(characterSquare);
+        charactersList.add(characterSquare);
+//        StatusBar healthBar = new StatusBar(100, characterSquare.getSize(), Paint.valueOf("0xff0000"));
+//        healthBar.setLayoutX(characterSquare.getLayoutX());
+//        healthBar.setLayoutY(characterSquare.getLayoutY() -(10 + ((characterSquare.getSize() - 1) * 5) ));
+//        mapView.getChildren().add(healthBar);
+//        if(log.isDebugEnabled())
+//            log.debug(healthBar.getLayoutX() + " " + healthBar.getLayoutY());
+//        healthBar.setAmount(80);
+        // TODO reduce this ladder
+        characterSquare.setOnMouseClicked(mouseEvent -> {
+            if(mouseEvent.getButton() == MouseButton.PRIMARY) {
+                if(currentAction == action.standard) {
+                    if(characterSquare.isClicked()) {
+                        characterSquare.unclick();
+                        popUpCharacterSettings(characterSquare);
+                    }
+                    else {
+                        for (CharacterSquare character: charactersList) {
+                            character.unclick();
+                        }
+                        characterSquare.click();
+                    }
+                }
+            }
+        });
+    }
+
+    private Button setUpTile(String imagePath, packageType type) {
+        log.debug(imagePath);
         Button tile = new Button();
         tile.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
-        if(!cachedImages.containsKey(image))
-            cachedImages.put(image, new Image(getClass().getResourceAsStream(image), tileSize, tileSize, false, false));
-        tile.setGraphic(new ImageView(cachedImages.get(image)));
+        if(!cachedImages.containsKey(imagePath)) {
+            // We're treating these cases separately since our characters may vary in size
+            if(type == packageType.characters) {
+                cachedImages.put(imagePath, new Image(imagePath));
+            }
+            else
+                cachedImages.put(imagePath, new Image(imagePath, tileSize, tileSize, false, false));
+        }
+        // TODO provide comment here
+        ImageView imageView = new ImageView(cachedImages.get(imagePath));
+        imageView.setFitHeight(tileSize);
+        imageView.setFitWidth(tileSize);
+        tile.setGraphic(imageView);
         tile.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
-                currentImage = image;
-                uncheckTiles();
+                uncheckTiles(type);
+                if(type == packageType.characters) {
+                    currentCharacterPath = imagePath;
+                    characterTileChosen = true;
+                }
+                else
+                    currentTilePath = imagePath;
                 tile.setEffect(new DropShadow());
             }
         });
+        // Additional treatment for characters
+
         return tile;
     }
 
-    private void uncheckTiles() {
-        for (Button tile : tilesList) {
+    private void uncheckTiles(packageType type) {
+        ArrayList<Button> list;
+        if(type == packageType.characters) {
+            list = charactersTilesList;
+            characterTileChosen = false;
+        }
+        else
+            list = tilesList;
+
+        for (Button tile : list) {
             tile.setEffect(null);
         }
     }
@@ -403,29 +523,36 @@ public class OfflineMapEditorController {
         mapView.setTranslateY(mouseEvent.getY());
     }
 
+    public void popUpCharacterSettings(CharacterSquare character) {
+        String name = character.getName().equals("") ? "Unnamed character" : character.getName();
+        CharacterSettingsController controller =
+                (CharacterSettingsController) popUpNewWindow("characterSettings.fxml", name);
+        controller.setStartingValues(character);
+    }
+
     public void popUpNewMapSettings() {
         popUpNewWindow("newMapSettings.fxml");
     }
 
-    public void loadZipPackageWindow(ActionEvent actionEvent) {
+    public void loadZipPackageWindow() {
         popUpNewWindow("newZipPackageWindow.fxml");
     }
 
-    private popUpController popUpNewWindow(String windowName) {
+    private PopUpController popUpNewWindow(String windowName) {
         return popUpNewWindow(windowName, "");
     }
 
-    private popUpController popUpNewWindow(String windowName, String title) {
+    private PopUpController popUpNewWindow(String windowName, String title) {
         Stage newWindow = new Stage();
         newWindow.setTitle(title);
         FXMLLoader fxmlLoader = new FXMLLoader();
         Parent root = null;
         try {
-            root = (Parent) fxmlLoader.load(getClass().getResource("/fxml/" + windowName).openStream());
+            root = fxmlLoader.load(getClass().getResource("/fxml/" + windowName).openStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        popUpController controller = fxmlLoader.getController();
+        PopUpController controller = fxmlLoader.getController();
         controller.setParent(this);
         newWindow.setScene(new Scene(root));
         newWindow.show();
@@ -477,7 +604,7 @@ public class OfflineMapEditorController {
         if(type == packageType.characters) {
             choiceBox = charactersPgChoiceBox;
             chooseView = charactersChooseView;
-            list = charactersList;
+            list = charactersTilesList;
             path = "/packages/characters/";
         }
         else {
@@ -499,7 +626,8 @@ public class OfflineMapEditorController {
             return;
 
         for(int i = 0; i < tiles.length; i++) {
-            tile = setUpTile(path + choiceBox.getValue() + "/" + tiles[i].getName());
+//            log.debug(path + choiceBox.getValue() + "/" + tiles[i].getName());
+            tile = setUpTile(path + choiceBox.getValue() + "/" + tiles[i].getName(), type);
             list.add(tile);
             chooseView.getChildren().add(tile);
         }
@@ -522,7 +650,7 @@ public class OfflineMapEditorController {
         ArrayList<Button> list;
         AnchorPane chooseView;
         if(type == packageType.characters) {
-            list = charactersList;
+            list = charactersTilesList;
             chooseView = charactersChooseView;
         }
         else {
@@ -530,7 +658,7 @@ public class OfflineMapEditorController {
             chooseView = tilesChooseView;
         }
 
-        for(Button btn : list) chooseView.getChildren().remove(btn);
+        for(Object obj : list) chooseView.getChildren().remove(obj);
         list.clear();
     }
 
@@ -548,11 +676,12 @@ public class OfflineMapEditorController {
         updatePackagesLayout(0, packageType.tiles);
     }
 
+    // TODO Characters are overlapping each other if they're big enough
     public void updatePackagesLayout(int decreaseRowValue, packageType type) {
         ArrayList<Button> list;
         AnchorPane chooseView;
         if(type == packageType.characters) {
-            list = charactersList;
+            list = charactersTilesList;
             chooseView = charactersChooseView;
         }
         else {
@@ -561,17 +690,23 @@ public class OfflineMapEditorController {
         }
 
         maxInRow = (int)(chooseView.getWidth() / (tileSize + tilesGap)) - decreaseRowValue;
-        int i = 0;
-        int j = 0;
+        int x = 0;
+        int y = 0;
         for (Button tile : list) {
-            tile.setLayoutX(i * (tileSize + tilesGap));
-            tile.setLayoutY((j + 1) * (tileSize + tilesGap));
-            i = (i+1)%maxInRow;
-            if(i == 0)
-                j++;
+            tile.setLayoutX(x * (tileSize + tilesGap));
+            tile.setLayoutY((y + 1) * (tileSize + tilesGap));
+            x = (x +1)%maxInRow;
+            if(x == 0)
+                y++;
+        }
+
+        // TODO It is called when split pane is moving, so add some additional check
+        if(list.isEmpty()) {
+            //popUpError("Package is empty!");
+            return;
         }
         // Resize anchor pane so all tiles will be reachable
-        Button lastTile = list.get(list.size() - 1);
+        Button lastTile = (Button)list.get(list.size() - 1);
         chooseView.setMinHeight(lastTile.getLayoutY() + tileSize);
     }
 
@@ -642,8 +777,8 @@ public class OfflineMapEditorController {
         }
         for (MapSquare[] squaresLine : firstLayer) {
             for (MapSquare square : squaresLine) {
-                writer.println(square.getImage());
-                if(log.isDebugEnabled()) log.debug(square.getImage());
+                writer.println(square.getImagePath());
+                if(log.isDebugEnabled()) log.debug(square.getImagePath());
             }
         }
         saveLocation = file;
@@ -652,6 +787,9 @@ public class OfflineMapEditorController {
         writer.close();
     }
 
-
-
+    public void toggleCharacterVisibility() {
+        for (CharacterSquare character: charactersList) {
+            character.setVisibility(characterVisibilityButton.isSelected());
+        }
+    }
 }

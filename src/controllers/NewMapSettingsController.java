@@ -7,7 +7,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
-public class NewMapSettingsController extends popUpController{
+public class NewMapSettingsController extends PopUpController {
 
     @FXML
     public AnchorPane createMapDialogue;

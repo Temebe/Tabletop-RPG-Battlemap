@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane fx:id="createMapDialogue" prefHeight="300.0" prefWidth="500.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.CharacterSettingsController">
+  <children>
+    <Button fx:id="okButton" defaultButton="true" layoutX="126.0" layoutY="259.0" mnemonicParsing="false" onAction="#accept" text="OK" />
+    <Button fx:id="cancelButton" cancelButton="true" defaultButton="false" layoutX="306.0" layoutY="259.0" mnemonicParsing="false" onAction="#cancel" text="Cancel" />
+    <ImageView fx:id="characterImage" blendMode="SRC_OVER" fitHeight="150.0" fitWidth="200.0" layoutX="15.0" layoutY="15.0" pickOnBounds="true" preserveRatio="true" />
+    <TextField fx:id="nameField" layoutX="286.0" layoutY="15.0" prefWidth="200.0" />
+    <ColorPicker fx:id="firstColorPicker" layoutX="390.0" layoutY="81.0" />
+    <Text layoutX="222.0" layoutY="34.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name:" />
+    <Text layoutX="222.0" layoutY="57.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar 1:" />
+    <Text layoutX="230.0" layoutY="77.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Current value:" />
+    <Text layoutX="230.0" layoutY="97.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Max value:" />
+    <TextField fx:id="firstCurrentValue" layoutX="331.0" layoutY="61.0" prefHeight="20.0" prefWidth="34.0" />
+    <TextField fx:id="firstMaxValue" layoutX="331.0" layoutY="81.0" prefHeight="20.0" prefWidth="34.0" />
+    <Text layoutX="390.0" layoutY="73.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar color" />
+    <ColorPicker fx:id="secondColorPicker" layoutX="390.0" layoutY="154.0" prefHeight="25.0" prefWidth="96.0" />
+    <Text layoutX="222.0" layoutY="130.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar 2:" />
+    <Text layoutX="230.0" layoutY="150.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Current value:" />
+    <Text layoutX="230.0" layoutY="170.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Max value:" />
+    <TextField id="SecondCurrentValue" fx:id="secondCurrentValue" layoutX="331.0" layoutY="134.0" prefHeight="20.0" prefWidth="34.0" />
+    <TextField id="SecondMaxValue" fx:id="secondMaxValue" layoutX="331.0" layoutY="154.0" prefHeight="20.0" prefWidth="34.0" />
+    <Text layoutX="390.0" layoutY="146.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar color" />
+    <ColorPicker fx:id="thirdColorPicker" layoutX="390.0" layoutY="226.0" prefHeight="25.0" prefWidth="96.0" />
+    <Text layoutX="222.0" layoutY="202.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar 3:" />
+    <Text layoutX="230.0" layoutY="222.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Current value:" />
+    <Text layoutX="230.0" layoutY="242.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Max value:" />
+    <TextField fx:id="thirdCurrentValue" layoutX="331.0" layoutY="206.0" prefHeight="20.0" prefWidth="34.0" />
+    <TextField fx:id="thirdMaxValue" layoutX="331.0" layoutY="226.0" prefHeight="20.0" prefWidth="34.0" />
+    <Text layoutX="390.0" layoutY="218.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar color" />
+    <Button layoutX="15.0" layoutY="189.0" mnemonicParsing="false" text="Permissions" />
+  </children>
+</AnchorPane>

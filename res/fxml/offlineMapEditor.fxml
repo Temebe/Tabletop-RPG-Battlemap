@@ -19,7 +19,7 @@
             <MenuItem mnemonicParsing="false" text="Open…" />
             <Menu mnemonicParsing="false" text="Open Recent" />
             <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Close" />
+            <MenuItem mnemonicParsing="false" onAction="#closeMap" text="Close" />
             <MenuItem mnemonicParsing="false" onAction="#saveMap" text="Save" />
             <MenuItem mnemonicParsing="false" onAction="#saveMapAs" text="Save As…" />
             <MenuItem mnemonicParsing="false" text="Revert" />
@@ -67,6 +67,7 @@
         <ToggleButton mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
         <ToggleButton mnemonicParsing="false" onAction="#setActionErase" text="Eraser" toggleGroup="$mainToolbar" />
         <ToggleButton fx:id="secondLayerTglBtn" mnemonicParsing="false" text="Second Layer" />
+        <ToggleButton fx:id="characterVisibilityButton" blendMode="SRC_OVER" mnemonicParsing="false" onAction="#toggleCharacterVisibility" selected="false" text="Characters Visibility" />
       </items>
     </ToolBar>
     <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.39420935412026725" focusTraversable="true" onDragOver="#updatePackagesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">

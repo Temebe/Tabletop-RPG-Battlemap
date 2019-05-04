@@ -1,6 +1,6 @@
 package controllers;
 
-public class popUpController {
+public class PopUpController {
     protected OfflineMapEditorController parent;
 
     public void setParent(OfflineMapEditorController parent) {
