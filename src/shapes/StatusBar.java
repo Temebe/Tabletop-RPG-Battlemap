@@ -30,6 +30,19 @@ public class StatusBar extends Group {
         this.color = paint.toString();
     }
 
+    public void updateSize(int size) {
+        if(size <= 0) {
+            size = 1;
+        }
+        this.size = size;
+        double width = size * tileSize;
+        double height = 10 + ((size - 1) * 5);
+        background.setWidth(width);
+        background.setHeight(height);
+        bar.setWidth(width * (amount / maxAmount));
+        bar.setHeight(height);
+    }
+
     public void setAmount(double amount) {
         if(amount > maxAmount) {
             amount = maxAmount;

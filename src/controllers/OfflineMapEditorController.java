@@ -107,7 +107,6 @@ public class OfflineMapEditorController {
         // NEW MAP
         stage.getScene().getAccelerators().put(newMapComb,
                 this::popUpNewMapSettings);
-
     }
 
     public enum action {
@@ -192,6 +191,11 @@ public class OfflineMapEditorController {
         }
     }
 
+    class DragDelta {
+        public double x;
+        public double y;
+    }
+
     private History history = new History();
 
     //Extensions that Image class of javafx can handle
@@ -234,6 +238,9 @@ public class OfflineMapEditorController {
     public ToggleButton characterVisibilityButton;
 
     @FXML
+    public Label leftStatusLabel;
+
+    @FXML
     public void initialize() {
         tilesPgChoiceBox.getSelectionModel()
             .selectedItemProperty()
@@ -268,11 +275,20 @@ public class OfflineMapEditorController {
         Image transparent = new Image(getClass().getResourceAsStream("/images/transparent.png"),
                 tileSize, tileSize, false, false);
         cachedImages.put("/images/transparent.png", transparent);
-
         secondLayerTglBtn.setOnAction(actionEvent -> {
             secondLayerVisible = secondLayerTglBtn.isSelected();
             disableLayers(secondLayerVisible, !secondLayerVisible);
         });
+        //TODO Add camera drag to mapView
+//        DragDelta dragDelta = new DragDelta();
+//        mapView.setOnMousePressed(mouseEvent -> {
+//            dragDelta.x = mapView.getLayoutX() - mouseEvent.getScreenX();
+//            dragDelta.y = mapView.getLayoutY() - mouseEvent.getScreenY();
+//        });
+//        mapView.setOnMouseDragged(mouseEvent -> {
+//            mapView.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
+//            mapView.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
+//        });
     }
 
     void setStage(Stage stage) { this.stage = stage; }
@@ -338,6 +354,9 @@ public class OfflineMapEditorController {
         mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
         mapSquare.setLayoutX(posX * tileSize);
         mapSquare.setLayoutY(posY * tileSize);
+        DragDelta dragDelta = new DragDelta();
+        dragDelta.x = 0;
+        dragDelta.y = 0;
         mapSquare.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
                 if(currentAction == action.paintTile)
@@ -347,8 +366,12 @@ public class OfflineMapEditorController {
                 }
             }
         });
+        mapSquare.setOnMousePressed(mouseEvent -> {
+            dragDelta.x = mapSquare.getLayoutX() - mouseEvent.getScreenX();
+            dragDelta.y = mapSquare.getLayoutY() - mouseEvent.getScreenY();
+        });
         mapSquare.setOnMouseDragged(mouseEvent -> {
-            if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent);
+            if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent, dragDelta);
         });
         mapSquare.setOnDragDetected(mouseEvent -> mapSquare.startFullDrag());
         mapSquare.setOnMouseDragOver(mouseDragEvent -> {
@@ -423,6 +446,9 @@ public class OfflineMapEditorController {
         characterSquare.setGraphic(new ImageView(cachedImages.get(currentCharacterPath)), currentCharacterPath);
         mapView.getChildren().add(characterSquare);
         charactersList.add(characterSquare);
+        DragDelta dragDelta = new DragDelta();
+        dragDelta.x = 0;
+        dragDelta.y = 0;
 //        StatusBar healthBar = new StatusBar(100, characterSquare.getSize(), Paint.valueOf("0xff0000"));
 //        healthBar.setLayoutX(characterSquare.getLayoutX());
 //        healthBar.setLayoutY(characterSquare.getLayoutY() -(10 + ((characterSquare.getSize() - 1) * 5) ));
@@ -445,6 +471,36 @@ public class OfflineMapEditorController {
                         characterSquare.click();
                     }
                 }
+                if(currentAction == action.erase) {
+                    charactersList.remove(characterSquare);
+                    mapView.getChildren().remove(characterSquare);
+                    characterSquare.removeBars();
+                }
+            }
+        });
+
+        characterSquare.setOnMousePressed(mouseEvent -> {
+            dragDelta.x = characterSquare.getLayoutX() - mouseEvent.getScreenX();
+            dragDelta.y = characterSquare.getLayoutY() - mouseEvent.getScreenY();
+        });
+        characterSquare.setOnDragDetected(mouseEvent -> {
+            characterSquare.startFullDrag();
+        });
+        characterSquare.setOnMouseDragged(mouseEvent -> {
+            characterSquare.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
+            characterSquare.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
+        });
+        characterSquare.setOnMouseDragReleased(mouseDragEvent -> {
+            int endX = (int)characterSquare.getLayoutX() / tileSize;
+            int endY = (int)characterSquare.getLayoutY() / tileSize;
+            if(endX > 0 && endY > 0 && endX <= mapWidth - 1 && endY <= mapHeight - 1) {
+                characterSquare.setLayoutPos(endX * tileSize, endY * tileSize);
+            }
+            dragDelta.x = 0;
+            dragDelta.y = 0;
+            characterSquare.unclick();
+            for (CharacterSquare character: charactersList) {
+                character.unclick();
             }
         });
     }
@@ -517,10 +573,10 @@ public class OfflineMapEditorController {
         log.debug("Move!" + endX + " " + endY);
     }
 
-    public void moveCamera(MouseEvent mouseEvent) {
+    public void moveCamera(MouseEvent mouseEvent, DragDelta dragDelta) {
         if(!mouseEvent.isSecondaryButtonDown()) return;
-        mapView.setTranslateX(mouseEvent.getX());
-        mapView.setTranslateY(mouseEvent.getY());
+        mapView.setTranslateX(mouseEvent.getScreenX() + dragDelta.x);
+        mapView.setTranslateY(mouseEvent.getScreenY() + dragDelta.y);
     }
 
     public void popUpCharacterSettings(CharacterSquare character) {

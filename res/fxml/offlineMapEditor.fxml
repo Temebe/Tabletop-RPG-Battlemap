@@ -112,14 +112,14 @@
         </TabPane>
         <ScrollPane pickOnBounds="true" prefHeight="-1.0" prefWidth="-1.0">
           <content>
-            <AnchorPane id="Content" fx:id="mapView" focusTraversable="false" minHeight="-1.0" minWidth="-1.0" onMouseDragged="#moveCamera" prefHeight="545.0" prefWidth="840.0" visible="true" />
+            <AnchorPane id="Content" fx:id="mapView" focusTraversable="false" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="840.0" visible="true" />
           </content>
         </ScrollPane>
       </items>
     </SplitPane>
     <HBox id="HBox" alignment="CENTER_LEFT" spacing="5.0" VBox.vgrow="NEVER">
       <children>
-        <Label maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Left status" HBox.hgrow="ALWAYS">
+        <Label fx:id="leftStatusLabel" maxHeight="1.7976931348623157E308" maxWidth="-1.0" text="Left status" HBox.hgrow="ALWAYS">
           <font>
             <Font size="11.0" fx:id="x3" />
           </font>

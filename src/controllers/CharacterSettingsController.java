@@ -52,6 +52,9 @@ public class CharacterSettingsController extends PopUpController {
     @FXML
     public ColorPicker thirdColorPicker;
 
+    @FXML
+    public TextField sizeField;
+
     private CharacterSquare character;
     private StatusBar firstBar;
     private StatusBar secondBar;
@@ -62,6 +65,7 @@ public class CharacterSettingsController extends PopUpController {
         this.character = character;
         characterImage.setImage(new Image(character.getImagePath()));
         nameField.setText(character.getName());
+        sizeField.setText(Integer.toString(character.getSize()));
         this.firstBar = character.getBar(CharacterSquare.barType.first);
         this.secondBar = character.getBar(CharacterSquare.barType.second);
         this.thirdBar = character.getBar(CharacterSquare.barType.third);
@@ -82,8 +86,15 @@ public class CharacterSettingsController extends PopUpController {
         }
     }
 
+    //TODO check if sizeField has integer
     public void accept() {
         character.setName(nameField.getText());
+        if(!sizeField.getText().isEmpty()) {
+            int newSize = Integer.parseInt(sizeField.getText());
+            if(character.getSize() != newSize && newSize > 0) {
+                character.setSize(newSize);
+            }
+        }
         checkChanges(firstBar, CharacterSquare.barType.first, firstCurrentValue, firstMaxValue, firstColorPicker);
         checkChanges(secondBar, CharacterSquare.barType.second, secondCurrentValue, secondMaxValue, secondColorPicker);
         checkChanges(thirdBar, CharacterSquare.barType.third, thirdCurrentValue, thirdMaxValue, thirdColorPicker);

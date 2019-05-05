@@ -37,5 +37,7 @@
     <TextField fx:id="thirdMaxValue" layoutX="331.0" layoutY="226.0" prefHeight="20.0" prefWidth="34.0" />
     <Text layoutX="390.0" layoutY="218.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Bar color" />
     <Button layoutX="15.0" layoutY="189.0" mnemonicParsing="false" text="Permissions" />
+    <Text layoutX="15.0" layoutY="238.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Size:" />
+    <TextField fx:id="sizeField" layoutX="50.0" layoutY="219.0" prefWidth="29.47998046875" />
   </children>
 </AnchorPane>

@@ -1,6 +1,5 @@
 package main;
 
-import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.effect.Glow;
 import javafx.scene.image.ImageView;
@@ -21,6 +20,7 @@ public class CharacterSquare extends Button {
     private StatusBar thirdBar = null;
     private Pane parent;
     private boolean clicked;
+    private ImageView imageView;
 
     public enum barType {
         first,
@@ -42,7 +42,8 @@ public class CharacterSquare extends Button {
         imageView.setFitHeight(size * tileSize);
         if(size == 0)
             size = 1;
-        setGraphic(imageView);
+        this.imageView = imageView;
+        setGraphic(this.imageView);
         this.imagePath = image;
 
     }
@@ -116,20 +117,38 @@ public class CharacterSquare extends Button {
         }
     }
 
+    public void setLayoutPos(double x, double y) {
+        setLayoutX(x);
+        setLayoutY(y);
+        setBarsOnStage();
+    }
+
     public void setBarsOnStage() {
         int height = 10 + (size - 1) * 5;
         if(firstBar != null) {
+            firstBar.updateSize(this.size);
             firstBar.setLayoutX(this.getLayoutX());
             firstBar.setLayoutY(this.getLayoutY() - height);
         }
         if(secondBar != null) {
+            secondBar.updateSize(this.size);
             secondBar.setLayoutX(this.getLayoutX());
             secondBar.setLayoutY(this.getLayoutY() - 2*height);
         }
         if(thirdBar != null) {
+            thirdBar.updateSize(this.size);
             thirdBar.setLayoutX(this.getLayoutX());
             thirdBar.setLayoutY(this.getLayoutY() - 3*height);
         }
+    }
+
+    public void setSize(int size) {
+        if(size <= 0) {
+            size = 1;
+        }
+        this.size = size;
+        imageView.setFitWidth(size * tileSize);
+        imageView.setFitHeight(size * tileSize);
     }
 
     public void setVisibility(boolean visible) {
@@ -165,5 +184,17 @@ public class CharacterSquare extends Button {
     public void click() {
         this.clicked = true;
         this.setEffect(new Glow());
+    }
+
+    public void removeBars() {
+        if(firstBar != null) {
+            parent.getChildren().remove(firstBar);
+        }
+        if(secondBar != null) {
+            parent.getChildren().remove(secondBar);
+        }
+        if(thirdBar != null) {
+            parent.getChildren().remove(thirdBar);
+        }
     }
 }
