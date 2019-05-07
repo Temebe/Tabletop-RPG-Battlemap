@@ -1,6 +1,7 @@
 package controllers;
 
 import com.google.gson.Gson;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -16,15 +17,17 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Paint;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import main.CharacterSquare;
-import main.MapSquare;
+import main.*;
 import org.apache.log4j.Logger;
+import org.apache.logging.log4j.jmx.gui.Client;
 import shapes.Arrow;
 import shapes.StatusBar;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 
 //TODO Get rid of useless event parameters
@@ -68,6 +71,18 @@ public class OfflineMapEditorController {
     // Variable which remembers where arrow started
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
+    private String chat = "";
+    Calendar cal = Calendar.getInstance();
+    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+
+    // Client side
+    private ClientSideSocket client = null;
+    private int PID;
+
+    // Server side
+    private Server server = null;
+    private ArrayList<Player> playersList;
+    private int freePID = 0; // PID that haven't been granted yet
 
     public enum packageType { characters, tiles }
 
@@ -241,6 +256,12 @@ public class OfflineMapEditorController {
     public Label leftStatusLabel;
 
     @FXML
+    public TextField chatField;
+
+    @FXML
+    public TextArea chatBox;
+
+    @FXML
     public void initialize() {
         tilesPgChoiceBox.getSelectionModel()
             .selectedItemProperty()
@@ -303,6 +324,80 @@ public class OfflineMapEditorController {
         if(changedMap)
             name += "*";
         stage.setTitle(String.format("%s - Tabletop RPG Battlemap", name));
+    }
+
+    void setServer(Server server, ClientSideSocket client) {
+        this.server = server;
+        this.client = client;
+        playersList = new ArrayList<>();
+    }
+
+    public void logPlayer(String nickname, ServerSideSocket socket) {
+        Player newPlayer = new Player(socket);
+        if(playersList.isEmpty()) {
+            newPlayer.setNickname(nickname);
+            newPlayer.setPermissionGroup(0);
+        } else {
+            // If nick is occupied simply put 1 and stop when it hits nick
+            while(isNameOccupied(nickname)) {
+                nickname += "1";
+            }
+            newPlayer.setNickname(nickname);
+        }
+        playersList.add(newPlayer);
+        newPlayer.setPID(freePID);
+        socket.sendPID(freePID, nickname);
+        freePID++;
+    }
+
+    void setClient(ClientSideSocket client) {
+        this.client = client;
+    }
+
+    public void setPID(int PID) {
+        this.PID = PID;
+    }
+
+    public void setNickname(String nickname) {
+        Platform.runLater(() -> leftStatusLabel.setText("Nick: " + nickname));
+    }
+
+    private boolean isNameOccupied(String nickname) {
+        for (Player player : playersList) {
+            if(player.getNickname().equals(nickname)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @FXML
+    void sendMessage() {
+        if(client != null && !chatField.getText().trim().isEmpty()) {
+            client.sendMessage(PID, chatField.getText());
+            chatField.setText("");
+        }
+    }
+
+    public void receiveMessage(String nickname, String message) {
+        Platform.runLater(() -> {
+            chat += nickname + "(" + sdf.format(cal.getTime()) + "): " + message + '\n';
+            chatBox.setText(chat);
+                });
+    }
+
+    public void broadcastMessage(String nickname, String message) {
+        for (Player player : playersList) {
+            player.receiveMessage(nickname, message);
+        }
+    }
+    public String getPlayerNick(int PID) throws IllegalArgumentException{
+        for (Player player : playersList) {
+            if(player.getPID() == PID) {
+                return player.getNickname();
+            }
+        }
+        throw new IllegalArgumentException();
     }
 
     @FXML
@@ -643,7 +738,7 @@ public class OfflineMapEditorController {
         }
         String[] packages = file.list((current, name) -> new File(current, name).isDirectory());
         if(packages == null) {
-            popUpError("Lorem ipsum");
+//            popUpError("Lorem ipsum");
             return;
         }
         ObservableList<String> packagesList = FXCollections.observableArrayList(packages);
