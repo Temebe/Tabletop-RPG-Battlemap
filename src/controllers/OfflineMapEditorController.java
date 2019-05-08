@@ -46,8 +46,8 @@ public class OfflineMapEditorController {
     private ArrayList<Button> charactersTilesList = new ArrayList<>();
     private ArrayList<CharacterSquare> charactersList = new ArrayList<>();
     private HashMap<String, Image> cachedImages = new HashMap<>();
-    private String currentTilePath = "/images/exampleSquare2.png";
-    private String currentCharacterPath = "/images/exampleSquare2.png";
+    private String currentTilePath = "/images/defaultSquare.png";
+    private String currentCharacterPath = "/images/defaultSquare.png";
     private String selectedPackage;
     private Gson gson = new Gson();
     private int mapHeight;
@@ -72,8 +72,8 @@ public class OfflineMapEditorController {
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
     private String chat = "";
-    Calendar cal = Calendar.getInstance();
-    SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    private Calendar cal = Calendar.getInstance();
+    private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
     // Client side
     private ClientSideSocket client = null;
@@ -92,10 +92,13 @@ public class OfflineMapEditorController {
 
     public void setActionDrawing() {
         currentAction = action.paintTile;
+        secondLayerVisible = secondLayerTglBtn.isSelected();
+        disableLayers(secondLayerVisible, !secondLayerVisible);
     }
 
     public void setActionRuler() {
         currentAction = action.ruler;
+        disableLayers(false, false);
     }
 
     public void setActionStandard() {
@@ -286,6 +289,8 @@ public class OfflineMapEditorController {
         // Set default tool to start with
         drawToolButton.setSelected(true);
         currentAction = action.paintTile;
+        secondLayerVisible = secondLayerTglBtn.isSelected();
+        disableLayers(secondLayerVisible, !secondLayerVisible);
         // Set few default squares to memory
         Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"),
                 tileSize, tileSize, false, false);
@@ -373,9 +378,14 @@ public class OfflineMapEditorController {
 
     @FXML
     void sendMessage() {
-        if(client != null && !chatField.getText().trim().isEmpty()) {
+        if(chatField.getText().trim().isEmpty()) {
+            return;
+        }
+        if(client != null) {
             client.sendMessage(PID, chatField.getText());
             chatField.setText("");
+        } else {
+            receiveMessage("OFFLINE", "You're disconnected!");
         }
     }
 
@@ -441,6 +451,8 @@ public class OfflineMapEditorController {
         saveLocation = null;
         updateTitle();
         mapSet = true;
+        secondLayerVisible = secondLayerTglBtn.isSelected();
+        disableLayers(secondLayerVisible, !secondLayerVisible);
     }
 
     //TODO think of reducing ifs and this whole method
@@ -864,6 +876,9 @@ public class OfflineMapEditorController {
     // TODO Think about better name
     // Method that enables user to change only one layer at once
     public void disableLayers(Boolean first, Boolean second) {
+        if(!mapSet) {
+            return;
+        }
         for (MapSquare row[] : secondLayer) {
             for (MapSquare square: row) {
                 square.setDisable(second);
