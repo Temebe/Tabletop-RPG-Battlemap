@@ -19,7 +19,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import main.*;
 import org.apache.log4j.Logger;
-import org.apache.logging.log4j.jmx.gui.Client;
 import shapes.Arrow;
 import shapes.StatusBar;
 
@@ -74,6 +73,7 @@ public class OfflineMapEditorController {
     private String chat = "";
     private Calendar cal = Calendar.getInstance();
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    private int freeCid = 0;
 
     // Client side
     private ClientSideSocket client = null;
@@ -453,6 +453,7 @@ public class OfflineMapEditorController {
         mapSet = true;
         secondLayerVisible = secondLayerTglBtn.isSelected();
         disableLayers(secondLayerVisible, !secondLayerVisible);
+        freeCid = 0;
     }
 
     //TODO think of reducing ifs and this whole method
@@ -531,19 +532,8 @@ public class OfflineMapEditorController {
         ImageView imageView = new ImageView(cachedImages.get(currentCharacterPath));
         int width = (int)imageView.getImage().getWidth()%tileSize;
         int height = (int)imageView.getImage().getHeight()%tileSize;
-        // First we need to check whether character can fit in chosen spot
-        if((width < (mapSquare.getPosX() - 1)) || (height < (mapSquare.getPosY() - 1))) {
-            popUpError("Character won't fit in this spot!");
-        }
-        // Probably unnecessary condition
-//        for(Button btn: charactersList) {
-//            CharacterSquare character = (CharacterSquare)btn;
-//            if((character.getPosX() == mapSquare.getPosX()) || (character.getPosY() == mapSquare.getPosY())) {
-//                popUpError("There is already character placed!");
-//                return;
-//            }
-//        }
-        CharacterSquare characterSquare = new CharacterSquare(mapSquare.getPosX(), mapSquare.getPosY(), mapView);
+        CharacterSquare characterSquare = new CharacterSquare(mapSquare.getPosX(), mapSquare.getPosY(),
+                mapView, freeCid++);
         setUpCharacter(characterSquare);
     }
 
@@ -556,13 +546,6 @@ public class OfflineMapEditorController {
         DragDelta dragDelta = new DragDelta();
         dragDelta.x = 0;
         dragDelta.y = 0;
-//        StatusBar healthBar = new StatusBar(100, characterSquare.getSize(), Paint.valueOf("0xff0000"));
-//        healthBar.setLayoutX(characterSquare.getLayoutX());
-//        healthBar.setLayoutY(characterSquare.getLayoutY() -(10 + ((characterSquare.getSize() - 1) * 5) ));
-//        mapView.getChildren().add(healthBar);
-//        if(log.isDebugEnabled())
-//            log.debug(healthBar.getLayoutX() + " " + healthBar.getLayoutY());
-//        healthBar.setAmount(80);
         // TODO reduce this ladder
         characterSquare.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton() == MouseButton.PRIMARY) {
@@ -924,10 +907,15 @@ public class OfflineMapEditorController {
             startingDirectory = new File("c:/");
         fileChooser.setInitialDirectory(startingDirectory);
         if(saving)
-            fileChooser.setInitialFileName("New firstLayer.txt");
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("TXT files (*.txt)", "*.txt");
+            fileChooser.setInitialFileName("New map.map");
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("MAP files (*.map)", "*.map");
         fileChooser.getExtensionFilters().add(extFilter);
-        File file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
+        File file;
+        if(saving) {
+            file = fileChooser.showSaveDialog(mapView.getScene().getWindow());
+        } else {
+            file = fileChooser.showOpenDialog(mapView.getScene().getWindow());
+        }
         return file;
     }
 
@@ -941,17 +929,144 @@ public class OfflineMapEditorController {
             log.error(e.getStackTrace());
             return;
         }
-        for (MapSquare[] squaresLine : firstLayer) {
-            for (MapSquare square : squaresLine) {
-                writer.println(square.getImagePath());
-                if(log.isDebugEnabled()) log.debug(square.getImagePath());
-            }
+        writeDownLayers(firstLayer, writer);
+        writeDownLayers(secondLayer, writer);
+        for(CharacterSquare character : charactersList) {
+            writeDownCharacter(character, writer);
         }
         saveLocation = file;
         changedMap = false;
         updateTitle();
         writer.close();
     }
+
+    private void writeDownLayers(MapSquare[][] layer, PrintWriter writer) {
+        for(MapSquare[] squaresLine : layer) {
+            for (MapSquare square : squaresLine) {
+                writer.println(square.getImagePath());
+                if(log.isDebugEnabled()) log.debug(square.getImagePath());
+            }
+        }
+    }
+
+    private void writeDownCharacter(CharacterSquare character, PrintWriter writer) {
+        StatusBar firstBar = character.getBar(CharacterSquare.barType.first);
+        StatusBar secondBar = character.getBar(CharacterSquare.barType.second);
+        StatusBar thirdBar = character.getBar(CharacterSquare.barType.third);
+        writer.println(character.getName() + ";" + character.getCid());
+        writer.println(character.getImagePath() + ";" + character.getLayoutX() + ";"
+                + character.getLayoutY() + ";" + character.getSize());
+        writeDownStatusBar(firstBar, writer);
+        writeDownStatusBar(secondBar, writer);
+        writeDownStatusBar(thirdBar, writer);
+    }
+
+    private void writeDownStatusBar(StatusBar statusBar, PrintWriter writer) {
+        if(statusBar != null) {
+            writer.println(statusBar.getColor() + ";" +  statusBar.getAmount() + ";" + statusBar.getMaxAmount());
+        } else {
+            writer.println("#null");
+        }
+    }
+
+    @FXML
+    public void loadMap() {
+        if(log.isDebugEnabled()) log.debug("TEST");
+        File file = chooseMapFile(false);
+        closeMap();
+        try {
+            loadMapFromFile(file);
+        } catch (Exception e) {
+            popUpError("There was problem with loading map.");
+        }
+        mapSet = true;
+    }
+
+    // TODO Ask if some1 is sure he want's to override existing map
+    private void loadMapFromFile(File file) throws Exception{
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String line = br.readLine();
+        int width = Integer.parseInt(line.split(" ")[0]);
+        int height = Integer.parseInt(line.split(" ")[1]);
+        if(mapSet) {
+            closeMap();
+        }
+        makeNewMap(width, height);
+        try {
+            loadLayer(br, width, height, firstLayer);
+            loadLayer(br, width, height, secondLayer);
+            loadCharacters(br);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mapSet = true;
+    }
+
+    private void loadLayer(BufferedReader br, int width, int height, MapSquare[][] layer) throws IOException{
+        String path;
+        int x = 0;
+        int y = 0;
+        while((path = br.readLine()) != null) {
+            if(!cachedImages.containsKey(path)) {
+                cachedImages.put(path, new Image(path, tileSize, tileSize, false, false));
+            }
+            layer[x][y].setGraphic(new ImageView(cachedImages.get(path)), path);
+            if(x == width - 1 && y == height - 1) {
+                break;
+            }
+        }
+    }
+
+    private void loadCharacters(BufferedReader br) throws IOException{
+        String line;
+        String[] args;
+        CharacterSquare newCharacter;
+        while((line = br.readLine()) != null) {
+            args = line.split(";");
+            newCharacter = new CharacterSquare(0, 0, mapView, 0);
+            setUpCharacter(newCharacter);
+            newCharacter.setName(args[0]);
+            newCharacter.setCid(Integer.parseInt(args[1]));
+            line = br.readLine();
+            args = line.split(";");
+            if(!cachedImages.containsKey(args[0])) {
+                cachedImages.put(args[0], new Image(args[0]));
+            }
+            newCharacter.setGraphic(new ImageView(args[0]), args[0]);
+            newCharacter.setLayoutX(Double.parseDouble(args[1]));
+            newCharacter.setLayoutY(Double.parseDouble(args[2]));
+            newCharacter.setSize(Integer.parseInt(args[3]));
+            newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.first);
+            newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.second);
+            newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.third);
+        }
+    }
+
+    private StatusBar loadStatusBar(BufferedReader br, int size) throws IOException{
+        String line = br.readLine();
+        if(line.equals("###")) {
+            return null;
+        }
+        StatusBar result;
+        String[] args = line.split(";");
+        String paint = args[0];
+        double maxAmount = Double.parseDouble(args[1]);
+        double amount = Double.parseDouble(args[1]);
+        result = new StatusBar(maxAmount, size, Paint.valueOf(paint));
+        result.setAmount(amount);
+        return result;
+    }
+
+//    public String packArguments(String ...arguments) {
+//        StringBuilder result = new StringBuilder();
+//        for (String arg : arguments) {
+//            result.append(arg).append(";");
+//        }
+//        if(result.length() > 0) {
+//            result.deleteCharAt(result.length() - 1);
+//        }
+//        return result.toString();
+//    }
 
     public void toggleCharacterVisibility() {
         for (CharacterSquare character: charactersList) {

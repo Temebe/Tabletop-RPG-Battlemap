@@ -4,11 +4,31 @@
 <?import java.util.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="controllers.helpController"
-            prefHeight="400.0" prefWidth="600.0">
-
+<AnchorPane fx:id="createMapDialogue" prefHeight="500.0" prefWidth="700.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.ErrorPopUpController">
+    <children>
+        <SplitPane dividerPositions="0.3194842406876791" focusTraversable="true" layoutX="0.0" layoutY="1.0" prefHeight="500.0" prefWidth="700.0">
+            <items>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+                    <children>
+                        <ListView editable="false" layoutX="0.0" layoutY="0.0" prefHeight="500.0" prefWidth="409.0" />
+                    </children>
+                </AnchorPane>
+                <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="700.0" prefWidth="500.0">
+                    <children>
+                        <Text fx:id="headerField" layoutX="14.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Help">
+                            <font>
+                                <Font size="20.0" />
+                            </font>
+                        </Text>
+                        <TextArea layoutX="14.0" layoutY="50.0" prefHeight="434.0" prefWidth="445.0" wrapText="true" />
+                        <ImageView fitHeight="150.0" fitWidth="200.0" layoutX="258.0" layoutY="36.0" pickOnBounds="true" preserveRatio="true" />
+                    </children>
+                </AnchorPane>
+            </items>
+        </SplitPane>
+    </children>
 </AnchorPane>

@@ -8,19 +8,21 @@ import shapes.StatusBar;
 
 import static controllers.OfflineMapEditorController.tileSize;
 
+// TODO posX and posY seem to be obsolete
 public class CharacterSquare extends Button {
     private String imagePath;
     private double posX;
     private double posY;
     //size is an amount of how tiles is both directions character cover (size 3 means character is 3 x 3)
     private int size = 0;
-    private String name = "";
+    private String name = "noname";
     private StatusBar firstBar = null;
     private StatusBar secondBar = null;
     private StatusBar thirdBar = null;
     private Pane parent;
     private boolean clicked;
     private ImageView imageView;
+    private int cid; //character id
 
     public enum barType {
         first,
@@ -28,11 +30,12 @@ public class CharacterSquare extends Button {
         third
     }
 
-    public CharacterSquare(double posX, double posY, Pane parent) {
+    public CharacterSquare(double posX, double posY, Pane parent, int cid) {
         setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
         this.posX = posX;
         this.posY = posY;
         this.parent = parent;
+        this.cid = cid;
     }
 
     public void setGraphic(ImageView imageView, String image) {
@@ -196,5 +199,13 @@ public class CharacterSquare extends Button {
         if(thirdBar != null) {
             parent.getChildren().remove(thirdBar);
         }
+    }
+
+    public void setCid(int cid) {
+        this.cid = cid;
+    }
+
+    public int getCid() {
+        return cid;
     }
 }
