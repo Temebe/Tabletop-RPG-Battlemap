@@ -1,11 +1,10 @@
 package main;
 
 import controllers.OfflineMapEditorController;
+import javafx.application.Platform;
+import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
@@ -16,6 +15,7 @@ public class ClientSideSocket extends Thread{
     Socket socket = null;
     private PrintWriter out = null;
     private BufferedReader in = null;
+    private static final Logger log = Logger.getLogger(ClientSideSocket.class);
 
     public ClientSideSocket(String host, int port) {
         this.port = port;
@@ -41,6 +41,7 @@ public class ClientSideSocket extends Thread{
         String[] data;
         try {
             while((input = in.readLine()) != null) {
+                System.out.println("CLIENTSIDESOCKET: " + input);
                 data = input.split(":", 2);
                 if(data[0].equalsIgnoreCase("LOGGED")) {
                     data = data[1].split(":", 2);
@@ -51,6 +52,22 @@ public class ClientSideSocket extends Thread{
                     data = data[1].split(":", 2);
                     controller.receiveMessage(data[0], data[1]);
                 }
+                if(data[0].equalsIgnoreCase("MAP_TRA")) {
+                    int mapSize = Integer.parseInt(data[1]);
+                    //TODO why after I put receiveMap into runLater it crashes WTFHTHAERIESHFOisEHRiog
+                    receiveMap(mapSize);
+                }
+                if(data[0].equalsIgnoreCase("DRAW_ACT")) {
+                    data = data[1].split(":", 4);
+                    String path = data[0];
+                    int posX = Integer.parseInt(data[1]);
+                    int posY = Integer.parseInt(data[2]);
+                    int layerNum = Integer.parseInt(data[3]);
+                    Platform.runLater(() -> controller.setMapSquareGraphic(posY, posX, path, layerNum));
+                }
+//                if(data[0].equalsIgnoreCase("CLS_MAP")) {
+//                    controller.closeMap();
+//                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -67,6 +84,74 @@ public class ClientSideSocket extends Thread{
 
     public void sendMessage(int PID, String msg) {
         out.println("MSG:" + PID + ":" + msg);
+    }
+
+    public void requestDrawing(int posX, int posY, String imagePath, int layerNum) {
+        out.println("DRAW_REQ:" + imagePath + ":" + posX + ":" + posY + ":" + layerNum);
+    }
+
+    public void requestNewCharacter(int posX, int posY, String imagePath) {
+        out.println("CHAR_CR_REQ" + imagePath + ":" + posX + ":" + posY);
+    }
+
+    private void receiveMap(int fileSize) {
+        FileOutputStream fileOut;
+        DataInputStream input;
+        File map;
+        try {
+             input = new DataInputStream(socket.getInputStream());
+        } catch (Exception e) {
+            controller.popUpError(e.getMessage());
+            return;
+        }
+        try {
+            map = createNewTempMap();
+            fileOut = new FileOutputStream(map);
+        } catch (Exception e) {
+            controller.popUpError(e.getMessage());
+            return;
+        }
+        if(fileSize == 0) {
+            closeFileStream(fileOut);
+            return;
+        }
+        int remaining = fileSize;
+        int count;
+        byte[] buffer = new byte[8192];
+        try {
+            while ((count = input.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+                remaining -= count;
+                fileOut.write(buffer, 0, count);
+            }
+        } catch (IOException e) {
+            closeFileStream(fileOut);
+            controller.popUpError("Problem occured while sending file");
+        }
+        closeFileStream(fileOut);
+        Platform.runLater(() -> controller.loadMap(map));
+    }
+
+    private File createNewTempMap() throws Exception {
+        File map = new File("map.map");
+        if(map.exists()) {
+            if(!map.delete()) {
+                throw new Exception("Couldn't delete temporary file");
+            }
+        }
+        if(!map.createNewFile()) {
+            throw new Exception("Couldn't create temporary file");
+        }
+        return map;
+    }
+
+    private void closeFileStream(FileOutputStream out) {
+        if(out != null) {
+            try {
+                out.close();
+            } catch (IOException e) {
+                controller.popUpError(e.getMessage());
+            }
+        }
     }
 
     public void close() {

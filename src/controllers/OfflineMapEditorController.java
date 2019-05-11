@@ -145,6 +145,11 @@ public class OfflineMapEditorController {
         private int undos = 0;
 
         public void append(action action, String arguments) {
+            //Prevent clients from using history
+            if(isClient() != isServer()) {
+                return;
+            }
+            if(client != null)
             //Prevent from multiplying same action
             if(historyTable[actualPos] == action && this.arguments[actualPos].equals(arguments))
                 return;
@@ -305,6 +310,7 @@ public class OfflineMapEditorController {
             secondLayerVisible = secondLayerTglBtn.isSelected();
             disableLayers(secondLayerVisible, !secondLayerVisible);
         });
+        characterVisibilityButton.setSelected(true);
         //TODO Add camera drag to mapView
 //        DragDelta dragDelta = new DragDelta();
 //        mapView.setOnMousePressed(mouseEvent -> {
@@ -337,13 +343,14 @@ public class OfflineMapEditorController {
         playersList = new ArrayList<>();
     }
 
+    // TODO set maximum nick size? or sth
     public void logPlayer(String nickname, ServerSideSocket socket) {
         Player newPlayer = new Player(socket);
         if(playersList.isEmpty()) {
             newPlayer.setNickname(nickname);
             newPlayer.setPermissionGroup(0);
         } else {
-            // If nick is occupied simply put 1 and stop when it hits nick
+            // If nick is occupied simply put 1 and stop when it hits free nick
             while(isNameOccupied(nickname)) {
                 nickname += "1";
             }
@@ -351,8 +358,13 @@ public class OfflineMapEditorController {
         }
         playersList.add(newPlayer);
         newPlayer.setPID(freePID);
-        socket.sendPID(freePID, nickname);
-        freePID++;
+        socket.sendPID(freePID++, nickname);
+        if(!mapSet) {
+            return;
+        }
+        if(newPlayer.getPID() != 0 && mapSet) {
+            broadcastMap(newPlayer);
+        }
     }
 
     void setClient(ClientSideSocket client) {
@@ -376,12 +388,24 @@ public class OfflineMapEditorController {
         return false;
     }
 
+    private boolean isClient() {
+        return (client != null && server == null);
+    }
+
+    private boolean isServer() {
+        return (client != null && server != null);
+    }
+
+    private boolean isConnected() {
+        return client != null;
+    }
+
     @FXML
     void sendMessage() {
         if(chatField.getText().trim().isEmpty()) {
             return;
         }
-        if(client != null) {
+        if(isConnected()) {
             client.sendMessage(PID, chatField.getText());
             chatField.setText("");
         } else {
@@ -397,11 +421,69 @@ public class OfflineMapEditorController {
     }
 
     public void broadcastMessage(String nickname, String message) {
-        for (Player player : playersList) {
+        for(Player player : playersList) {
             player.receiveMessage(nickname, message);
         }
     }
-    public String getPlayerNick(int PID) throws IllegalArgumentException{
+
+    public void broadcastCloseMap() {
+        for(Player player : playersList) {
+            player.getSocket().sendCloseMap();
+        }
+    }
+
+    public void broadcastMap() {
+        broadcastMap(null);
+    }
+
+    // null if you really want to broadcast map to every player
+    public void broadcastMap(Player player) {
+        File map = new File("temp/servmap.map");
+        try {
+            if(map.exists()) {
+                if(!map.delete()) {
+                    popUpError("Couldn't create temporary map file for player to send (deletion error)");
+                    return;
+                }
+            }
+            if(!map.createNewFile()) {
+                popUpError("Couldn't create temporary map file for player to send (create error)");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            popUpError("Couldn't create temporary map file for player to send (stream exception)");
+            return;
+        }
+        Platform.runLater(() -> {
+            saveMapToFile(map, true);
+            if(player != null) {
+                player.getSocket().sendMap(map);
+                return;
+            }
+            for(Player p : playersList) {
+                if(p.getPID() == 0) {
+                    continue;
+                }
+                if(log.isDebugEnabled()) log.debug("Sending map to " + p.getPID());
+                p.getSocket().sendMap(map);
+            }
+        });
+    }
+
+    public void sendMapToPlayer(Player player, File map) {
+        Platform.runLater(() -> {
+            saveMapToFile(map, true);
+            player.getSocket().sendMap(map);
+        });
+    }
+
+    public void broadcastDrawing(int posX, int posY, String imagePath, int layerNum) {
+        for(Player player : playersList) {
+            player.getSocket().sendDrawAct(posX, posY, imagePath, layerNum);
+        }
+    }
+
+    public String getPlayerNick(int PID) throws IllegalArgumentException {
         for (Player player : playersList) {
             if(player.getPID() == PID) {
                 return player.getNickname();
@@ -411,7 +493,7 @@ public class OfflineMapEditorController {
     }
 
     @FXML
-    void closeMap() {
+    public void closeMap() {
         if(!mapSet) {
             popUpError("No map is opened!");
             return;
@@ -426,16 +508,22 @@ public class OfflineMapEditorController {
                 mapView.getChildren().remove(square);
             }
         }
-        for(Button character : charactersTilesList) {
+        for(CharacterSquare character : charactersList) {
             mapView.getChildren().remove(character);
+            character.removeBars();
         }
+        charactersList.clear();
         mapSet = false;
+//        if(server != null) {
+//            mapSet = true;
+//            broadcastCloseMap();
+//        }
     }
 
     // It may be confusing but first layer is actually the one under
     void makeNewMap(int width, int height) {
         if(mapSet) {
-            popUpError("Close existing map in order to set new one!");
+            closeMap();
         }
         mapWidth = width;
         mapHeight = height;
@@ -454,6 +542,9 @@ public class OfflineMapEditorController {
         secondLayerVisible = secondLayerTglBtn.isSelected();
         disableLayers(secondLayerVisible, !secondLayerVisible);
         freeCid = 0;
+        if(isServer()) {
+            broadcastMap();
+        }
     }
 
     //TODO think of reducing ifs and this whole method
@@ -513,9 +604,32 @@ public class OfflineMapEditorController {
         // Do not allow for setting same graphic over and over again
         if(mapSquare.getImagePath().equals(image))
             return;
+        if(isConnected()) {
+            client.requestDrawing(posX, posY, image, mapSquare.getLayer());
+            return;
+        }
         String arguments = posX + ";" + posY + ";" + mapSquare.getImagePath() + ";" + mapSquare.getLayer();
         mapSquare.setGraphic(new ImageView(cachedImages.get(image)), image);
         history.append(action.paintTile, arguments);
+    }
+
+    // Setting graphic for clients
+    public void setMapSquareGraphic(int posY, int posX, String image, int layerNum) {
+        if((posY > mapHeight - 1) || (posX > mapWidth - 1)) {
+            return;
+        }
+        MapSquare[][] layer;
+        if(layerNum == 1) {
+            layer = firstLayer;
+        } else {
+            layer = secondLayer;
+        }
+        loadGraphic(image, true);
+        layer[posY][posX].setGraphic(new ImageView(cachedImages.get(image)), image);
+        if(isServer()) {
+            String arguments = posX + ";" + posY + ";" + image + ";" + layerNum;
+            history.append(action.paintTile, arguments);
+        }
     }
 
     // TODO Maybe this method is not necessary
@@ -529,6 +643,9 @@ public class OfflineMapEditorController {
     }
 
     private void putCharacterOnSquare(MapSquare mapSquare) {
+        if(isConnected()) {
+            return;
+        }
         ImageView imageView = new ImageView(cachedImages.get(currentCharacterPath));
         int width = (int)imageView.getImage().getWidth()%tileSize;
         int height = (int)imageView.getImage().getHeight()%tileSize;
@@ -599,13 +716,12 @@ public class OfflineMapEditorController {
         log.debug(imagePath);
         Button tile = new Button();
         tile.setStyle("-fx-background-color: transparent; -fx-padding: 5, 5, 5, 5;");
-        if(!cachedImages.containsKey(imagePath)) {
             // We're treating these cases separately since our characters may vary in size
-            if(type == packageType.characters) {
-                cachedImages.put(imagePath, new Image(imagePath));
-            }
-            else
-                cachedImages.put(imagePath, new Image(imagePath, tileSize, tileSize, false, false));
+        if(type == packageType.characters) {
+            loadGraphic(imagePath, false);
+        }
+        else {
+            loadGraphic(imagePath, true);
         }
         // TODO provide comment here
         ImageView imageView = new ImageView(cachedImages.get(imagePath));
@@ -706,9 +822,11 @@ public class OfflineMapEditorController {
     }
 
     public void popUpError(String errorMsg) {
-        ErrorPopUpController controller =
-                (ErrorPopUpController)popUpNewWindow("errorPopUp.fxml", "Error");
-        controller.setErrorMsg(errorMsg);
+        Platform.runLater(() -> {
+            ErrorPopUpController controller =
+                    (ErrorPopUpController)popUpNewWindow("errorPopUp.fxml", "Error");
+            controller.setErrorMsg(errorMsg);
+        });
     }
 
     // If package type is not specified we just update both types
@@ -887,13 +1005,13 @@ public class OfflineMapEditorController {
         // Check if firstLayer is not saved already nor user is forcing fileChooser
         if(saveLocation != null && !forceFileChooser) {
             if(saveLocation.exists()) {
-                saveMapToFile(saveLocation);
+                saveMapToFile(saveLocation, false);
                 return;
             }
         }
         File file = chooseMapFile(true);
         if(file != null)
-            saveMapToFile(file);
+            saveMapToFile(file, false);
     }
 
     public File chooseMapFile(boolean saving) {
@@ -919,8 +1037,9 @@ public class OfflineMapEditorController {
         return file;
     }
 
+    // tempSave true means that it is saved as a temporary file and there is no need to i.e. set saveLocation
     //TODO add some exceptions for missing images or something
-    private void saveMapToFile(File file) {
+    private void saveMapToFile(File file, boolean tempSave) {
         PrintWriter writer;
         try {
             writer = new PrintWriter(file);
@@ -934,9 +1053,11 @@ public class OfflineMapEditorController {
         for(CharacterSquare character : charactersList) {
             writeDownCharacter(character, writer);
         }
-        saveLocation = file;
-        changedMap = false;
-        updateTitle();
+        if(!tempSave) {
+            saveLocation = file;
+            changedMap = false;
+            updateTitle();
+        }
         writer.close();
     }
 
@@ -947,6 +1068,7 @@ public class OfflineMapEditorController {
                 if(log.isDebugEnabled()) log.debug(square.getImagePath());
             }
         }
+        writer.println("###");
     }
 
     private void writeDownCharacter(CharacterSquare character, PrintWriter writer) {
@@ -972,47 +1094,67 @@ public class OfflineMapEditorController {
     @FXML
     public void loadMap() {
         if(log.isDebugEnabled()) log.debug("TEST");
-        File file = chooseMapFile(false);
-        closeMap();
-        try {
-            loadMapFromFile(file);
-        } catch (Exception e) {
-            popUpError("There was problem with loading map.");
-        }
-        mapSet = true;
+        File map = chooseMapFile(false);
+        loadMap(map);
     }
 
-    // TODO Ask if some1 is sure he want's to override existing map
-    private void loadMapFromFile(File file) throws Exception{
-        BufferedReader br = new BufferedReader(new FileReader(file));
-        String line = br.readLine();
-        int width = Integer.parseInt(line.split(" ")[0]);
-        int height = Integer.parseInt(line.split(" ")[1]);
+    public void loadMap(File map) {
         if(mapSet) {
             closeMap();
         }
+        try {
+            loadMapFromFile(map);
+        } catch (Exception e) {
+            e.printStackTrace();
+            popUpError("There was problem with loading map.");
+        }
+        mapSet = true;
+        if(isServer()) {
+            broadcastMap();
+        }
+    }
+
+    // TODO Ask if some1 is sure he want's to override existing map
+    public void loadMapFromFile(File file){
+        BufferedReader br;
+        String line;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            line = br.readLine();
+        } catch (Exception e) {
+            popUpError("There was problem with reading map file");
+            return;
+        }
+        int width = Integer.parseInt(line.split(" ")[0]);
+        int height = Integer.parseInt(line.split(" ")[1]);
         makeNewMap(width, height);
         try {
-            loadLayer(br, width, height, firstLayer);
-            loadLayer(br, width, height, secondLayer);
+            loadLayer(br, firstLayer);
+            loadLayer(br, secondLayer);
             loadCharacters(br);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        mapSet = true;
+        try {
+            br.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void loadLayer(BufferedReader br, int width, int height, MapSquare[][] layer) throws IOException{
+    private void loadLayer(BufferedReader br, MapSquare[][] layer) throws IOException{
         String path;
         int x = 0;
         int y = 0;
         while((path = br.readLine()) != null) {
-            if(!cachedImages.containsKey(path)) {
-                cachedImages.put(path, new Image(path, tileSize, tileSize, false, false));
-            }
-            layer[x][y].setGraphic(new ImageView(cachedImages.get(path)), path);
-            if(x == width - 1 && y == height - 1) {
+            if(path.equals("###")) {
                 break;
+            }
+            loadGraphic(path, true);
+            layer[y][x].setGraphic(new ImageView(cachedImages.get(path)), path);
+            x = (x + 1)%mapWidth;
+            if(x == 0) {
+                y = (y + 1)%mapHeight;
             }
         }
     }
@@ -1029,9 +1171,7 @@ public class OfflineMapEditorController {
             newCharacter.setCid(Integer.parseInt(args[1]));
             line = br.readLine();
             args = line.split(";");
-            if(!cachedImages.containsKey(args[0])) {
-                cachedImages.put(args[0], new Image(args[0]));
-            }
+            loadGraphic(args[0], false);
             newCharacter.setGraphic(new ImageView(args[0]), args[0]);
             newCharacter.setLayoutX(Double.parseDouble(args[1]));
             newCharacter.setLayoutY(Double.parseDouble(args[2]));
@@ -1039,12 +1179,16 @@ public class OfflineMapEditorController {
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.first);
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.second);
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.third);
+            newCharacter.setBarsOnStage();
+            if(freeCid <= newCharacter.getCid()) {
+                freeCid = newCharacter.getCid() + 1;
+            }
         }
     }
 
     private StatusBar loadStatusBar(BufferedReader br, int size) throws IOException{
         String line = br.readLine();
-        if(line.equals("###")) {
+        if(line.equals("#null")) {
             return null;
         }
         StatusBar result;
@@ -1071,6 +1215,21 @@ public class OfflineMapEditorController {
     public void toggleCharacterVisibility() {
         for (CharacterSquare character: charactersList) {
             character.setVisibility(characterVisibilityButton.isSelected());
+        }
+    }
+
+    public void loadGraphic(String path, boolean forceSize) {
+        if(cachedImages.containsKey(path)) {
+            return;
+        }
+        if (new File("res/" + path).exists()) {
+            if(forceSize) {
+                cachedImages.put(path, new Image(path, tileSize, tileSize, false, false));
+            } else {
+                cachedImages.put(path, new Image(path));
+            }
+        } else {
+            cachedImages.put(path, new Image("/images/missingSquare.png"));
         }
     }
 }

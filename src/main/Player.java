@@ -44,4 +44,8 @@ public class Player {
     public int getPID() {
         return PID;
     }
+
+    public ServerSideSocket getSocket() {
+        return serverSideSocket;
+    }
 }

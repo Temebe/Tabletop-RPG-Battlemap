@@ -110,11 +110,11 @@ public class CharacterSquare extends Button {
                 return;
             }
         }
-        if(statusBar == null) {
+        if(statusBar == null && newStatusBar != null) {
             parent.getChildren().add(newStatusBar);
             return;
         }
-        if(newStatusBar != statusBar) {
+        if(statusBar != null && newStatusBar != statusBar) {
             parent.getChildren().remove(statusBar);
             parent.getChildren().add(newStatusBar);
         }
