@@ -344,7 +344,7 @@ public class OfflineMapEditorController {
     }
 
     // TODO set maximum nick size? or sth
-    public void logPlayer(String nickname, ServerSideSocket socket) {
+    public void logInPlayer(String nickname, ServerSideSocket socket) {
         Player newPlayer = new Player(socket);
         if(playersList.isEmpty()) {
             newPlayer.setNickname(nickname);
@@ -367,8 +367,21 @@ public class OfflineMapEditorController {
         }
     }
 
+    public void logOutPlayer(ServerSideSocket socket) {
+        for (Player player : playersList) {
+            if(player.getSocket() == socket) {
+                playersList.remove(player);
+                return;
+            }
+        }
+    }
+
     void setClient(ClientSideSocket client) {
         this.client = client;
+    }
+
+    public ClientSideSocket getClient() {
+        return client;
     }
 
     public void setPID(int PID) {
@@ -388,15 +401,15 @@ public class OfflineMapEditorController {
         return false;
     }
 
-    private boolean isClient() {
+    public boolean isClient() {
         return (client != null && server == null);
     }
 
-    private boolean isServer() {
+    public boolean isServer() {
         return (client != null && server != null);
     }
 
-    private boolean isConnected() {
+    public boolean isConnected() {
         return client != null;
     }
 
@@ -480,6 +493,37 @@ public class OfflineMapEditorController {
     public void broadcastDrawing(int posX, int posY, String imagePath, int layerNum) {
         for(Player player : playersList) {
             player.getSocket().sendDrawAct(posX, posY, imagePath, layerNum);
+        }
+    }
+
+    public void broadcastCreatingCharacter(int posX, int posY, String imagePath) {
+        int cid = freeCid++;
+        for(Player player : playersList) {
+            player.getSocket().sendCharCreateAct(posX, posY, imagePath, cid);
+        }
+    }
+
+    public void broadcastDeletingCharacter(int cid) {
+        for(Player player : playersList) {
+            player.getSocket().sendCharDeleteAct(cid);
+        }
+    }
+
+    public void broadcastMovingCharacter(int cid, int posX, int posY) {
+        for(Player player : playersList) {
+            player.getSocket().sendCharMoveAct(cid, posX, posY);
+        }
+    }
+
+    public void broadcastSettingCharacter(int cid, String name, int size,
+                                          String color1, double amount1, double maxAmount1,
+                                          String color2, double amount2, double maxAmount2,
+                                          String color3, double amount3, double maxAmount3) {
+        for(Player player : playersList) {
+            player.getSocket().sendCharSetAct(cid, name, size,
+                    color1, amount1, maxAmount1,
+                    color2, amount2, maxAmount2,
+                    color3, amount3, maxAmount3);
         }
     }
 
@@ -642,16 +686,32 @@ public class OfflineMapEditorController {
         setMapSquareGraphic(posY, posX, firstLayer[posY][posX]);
     }
 
+    // TODO propably posX and posY in character Square are obsolite
     private void putCharacterOnSquare(MapSquare mapSquare) {
         if(isConnected()) {
+            client.requestNewCharacter((int)mapSquare.getPosX(), (int)mapSquare.getPosY(), currentCharacterPath);
             return;
         }
+        log.debug("wtfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         ImageView imageView = new ImageView(cachedImages.get(currentCharacterPath));
         int width = (int)imageView.getImage().getWidth()%tileSize;
         int height = (int)imageView.getImage().getHeight()%tileSize;
         CharacterSquare characterSquare = new CharacterSquare(mapSquare.getPosX(), mapSquare.getPosY(),
                 mapView, freeCid++);
         setUpCharacter(characterSquare);
+    }
+
+    // Version of creating character for clients
+    public void putCharacterOnSquare(int posX, int posY, String imagePath, int cid) {
+        loadGraphic(imagePath, false);
+        ImageView imageView = new ImageView(cachedImages.get(imagePath));
+        int width = (int)imageView.getImage().getWidth()%tileSize;
+        int height = (int)imageView.getImage().getHeight()%tileSize;
+        CharacterSquare characterSquare = new CharacterSquare(posX, posY,
+                mapView, cid);
+        setUpCharacter(characterSquare);
+        loadGraphic(imagePath, false);
+        characterSquare.setGraphic(new ImageView(cachedImages.get(imagePath)), imagePath);
     }
 
     private void setUpCharacter(CharacterSquare characterSquare) {
@@ -679,9 +739,7 @@ public class OfflineMapEditorController {
                     }
                 }
                 if(currentAction == action.erase) {
-                    charactersList.remove(characterSquare);
-                    mapView.getChildren().remove(characterSquare);
-                    characterSquare.removeBars();
+                    deleteCharacter(characterSquare);
                 }
             }
         });
@@ -698,18 +756,131 @@ public class OfflineMapEditorController {
             characterSquare.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
         });
         characterSquare.setOnMouseDragReleased(mouseDragEvent -> {
-            int endX = (int)characterSquare.getLayoutX() / tileSize;
-            int endY = (int)characterSquare.getLayoutY() / tileSize;
-            if(endX > 0 && endY > 0 && endX <= mapWidth - 1 && endY <= mapHeight - 1) {
-                characterSquare.setLayoutPos(endX * tileSize, endY * tileSize);
-            }
+            moveCharacter(characterSquare);
             dragDelta.x = 0;
             dragDelta.y = 0;
-            characterSquare.unclick();
-            for (CharacterSquare character: charactersList) {
-                character.unclick();
-            }
         });
+    }
+
+    private void moveCharacter(CharacterSquare character) {
+        character.unclick();
+        for (CharacterSquare ch: charactersList) {
+            ch.unclick();
+        }
+        int endX = (int)character.getLayoutX() / tileSize;
+        int endY = (int)character.getLayoutY() / tileSize;
+        if(endX >= 0 && endY >= 0 && endX <= mapWidth - 1 && endY <= mapHeight - 1) {
+            if(isConnected()) {
+                character.setLayoutPos(character.getPosX() * tileSize,
+                        character.getPosY() * tileSize);
+                client.requestMoveCharacter(character.getCid(), endX, endY);
+                return;
+            }
+            character.setLayoutPos(endX * tileSize, endY * tileSize);
+            character.setPosX(endX);
+            character.setPosY(endY);
+        } else {
+            character.setLayoutPos(character.getPosX() * tileSize,
+                    character.getPosY() * tileSize);
+        }
+    }
+
+    public void moveCharacter(int cid, int posX, int posY) {
+        CharacterSquare character = null;
+        for (CharacterSquare ch : charactersList) {
+            if(ch.getCid() == cid) {
+                character = ch;
+                break;
+            }
+        }
+        if(character == null) {
+            return;
+        }
+        character.setLayoutPos((double)posX * tileSize, (double)posY * tileSize);
+        character.setPosX(posX);
+        character.setPosY(posY);
+
+    }
+
+    private void deleteCharacter(CharacterSquare character) {
+        if(isConnected()) {
+            client.requestDelCharacter(character.getCid());
+            return;
+        }
+        charactersList.remove(character);
+        mapView.getChildren().remove(character);
+        character.removeBars();
+    }
+
+    public void deleteCharacter(int cid) {
+        for(CharacterSquare character : charactersList) {
+            if(character.getCid() == cid) {
+                charactersList.remove(character);
+                mapView.getChildren().remove(character);
+                character.removeBars();
+                return;
+            }
+        }
+    }
+
+    // TODO Get rid of duplicate
+    public void setCharacter(String[] data) {
+        int cid = Integer.parseInt(data[0]);
+        String name = data[1];
+        int size = Integer.parseInt(data[2]);
+        String color1 = data[3];
+        double amount1 = Double.parseDouble(data[4]);
+        double maxAmount1 = Double.parseDouble(data[5]);
+        String color2 = data[6];
+        double amount2 = Double.parseDouble(data[7]);
+        double maxAmount2 = Double.parseDouble(data[8]);
+        String color3 = data[9];
+        double amount3 = Double.parseDouble(data[10]);
+        double maxAmount3 = Double.parseDouble(data[11]);
+        setCharacter(cid, name, size,
+                color1, amount1, maxAmount1,
+                color2, amount2, maxAmount2,
+                color3, amount3, maxAmount3);
+    }
+
+    // TODO do some methods to shorten this
+    public void setCharacter(int cid, String name, int size,
+                             String color1, double amount1, double maxAmount1,
+                             String color2, double amount2, double maxAmount2,
+                             String color3, double amount3, double maxAmount3) {
+        CharacterSquare character = null;
+        for(CharacterSquare ch : charactersList) {
+            if(ch.getCid() == cid) {
+                character = ch;
+            }
+        }
+        if(character == null) {
+            return;
+        }
+        character.setName(name);
+        character.setSize(size);
+        if(!color1.equals("null")) {
+            StatusBar bar = new StatusBar(maxAmount1, size, Paint.valueOf(color1));
+            bar.setAmount(amount1);
+            character.setBar(bar, CharacterSquare.barType.first);
+        } else {
+            character.setBar(null, CharacterSquare.barType.first);
+        }
+        if(!color2.equals("null")) {
+            StatusBar bar = new StatusBar(maxAmount2, size, Paint.valueOf(color2));
+            bar.setAmount(amount2);
+            character.setBar(bar, CharacterSquare.barType.second);
+        } else {
+            character.setBar(null, CharacterSquare.barType.second);
+        }
+        if(!color3.equals("null")) {
+            StatusBar bar = new StatusBar(maxAmount3, size, Paint.valueOf(color3));
+            bar.setAmount(amount3);
+            character.setBar(bar, CharacterSquare.barType.third);
+        } else {
+            character.setBar(null, CharacterSquare.barType.third);
+        }
+        character.setBarsOnStage();
     }
 
     private Button setUpTile(String imagePath, packageType type) {

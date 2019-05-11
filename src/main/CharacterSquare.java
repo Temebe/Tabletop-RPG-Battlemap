@@ -126,6 +126,14 @@ public class CharacterSquare extends Button {
         setBarsOnStage();
     }
 
+    public void setPosX(double posX) {
+        this.posX = posX;
+    }
+
+    public void setPosY(double posY) {
+        this.posY = posY;
+    }
+
     public void setBarsOnStage() {
         int height = 10 + (size - 1) * 5;
         if(firstBar != null) {

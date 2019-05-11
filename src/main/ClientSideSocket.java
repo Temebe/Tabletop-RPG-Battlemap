@@ -40,6 +40,7 @@ public class ClientSideSocket extends Thread{
         String input;
         String[] data;
         try {
+            // TODO need to think about moving this to separate methods
             while((input = in.readLine()) != null) {
                 System.out.println("CLIENTSIDESOCKET: " + input);
                 data = input.split(":", 2);
@@ -54,16 +55,38 @@ public class ClientSideSocket extends Thread{
                 }
                 if(data[0].equalsIgnoreCase("MAP_TRA")) {
                     int mapSize = Integer.parseInt(data[1]);
-                    //TODO why after I put receiveMap into runLater it crashes WTFHTHAERIESHFOisEHRiog
                     receiveMap(mapSize);
                 }
                 if(data[0].equalsIgnoreCase("DRAW_ACT")) {
                     data = data[1].split(":", 4);
-                    String path = data[0];
+                    String imagePath = data[0];
                     int posX = Integer.parseInt(data[1]);
                     int posY = Integer.parseInt(data[2]);
                     int layerNum = Integer.parseInt(data[3]);
-                    Platform.runLater(() -> controller.setMapSquareGraphic(posY, posX, path, layerNum));
+                    Platform.runLater(() -> controller.setMapSquareGraphic(posY, posX, imagePath, layerNum));
+                }
+                if(data[0].equalsIgnoreCase("CHAR_CR_ACT")) {
+                    data = data[1].split(":", 4);
+                    String imagePath = data[0];
+                    int posX = Integer.parseInt(data[1]);
+                    int posY = Integer.parseInt(data[2]);
+                    int cid = Integer.parseInt(data[3]);
+                    Platform.runLater(() -> controller.putCharacterOnSquare(posX, posY, imagePath, cid));
+                }
+                if(data[0].equalsIgnoreCase("CHAR_DL_ACT")) {
+                    int cid = Integer.parseInt(data[1]);
+                    Platform.runLater(() -> controller.deleteCharacter(cid));
+                }
+                if(data[0].equalsIgnoreCase("CHAR_MOV_ACT")) {
+                    data = data[1].split(":", 4);
+                    int posX = Integer.parseInt(data[1]);
+                    int posY = Integer.parseInt(data[2]);
+                    int cid = Integer.parseInt(data[0]);
+                    Platform.runLater(() -> controller.moveCharacter(cid, posX, posY));
+                }
+                if(data[0].equalsIgnoreCase("CHAR_SET_ACT")) {
+                    String[] characterData = data[1].split(":", 12);
+                    Platform.runLater(() -> controller.setCharacter(characterData));
                 }
 //                if(data[0].equalsIgnoreCase("CLS_MAP")) {
 //                    controller.closeMap();
@@ -91,7 +114,25 @@ public class ClientSideSocket extends Thread{
     }
 
     public void requestNewCharacter(int posX, int posY, String imagePath) {
-        out.println("CHAR_CR_REQ" + imagePath + ":" + posX + ":" + posY);
+        out.println("CHAR_CR_REQ:" + imagePath + ":" + posX + ":" + posY);
+    }
+
+    public void requestDelCharacter(int cid) {
+        out.println("CHAR_DL_REQ:" + cid);
+    }
+
+    public void requestMoveCharacter(int cid, int posX, int posY) {
+        out.println("CHAR_MOV_REQ:" + cid + ":" + posX + ":" + posY);
+    }
+
+    public void requestSetCharacter(int cid, String name, int size,
+                                    String color1, double amount1, double maxAmount1,
+                                    String color2, double amount2, double maxAmount2,
+                                    String color3, double amount3, double maxAmount3) {
+        out.println("CHAR_SET_REQ:" + cid + ":" + name + ":" + size
+                + ":" + color1 + ":" + amount1 + ":" + maxAmount1
+                + ":" + color2 + ":" + amount2 + ":" + maxAmount2
+                + ":" + color3 + ":" + amount3 + ":" + maxAmount3);
     }
 
     private void receiveMap(int fileSize) {

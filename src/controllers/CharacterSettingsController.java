@@ -88,6 +88,11 @@ public class CharacterSettingsController extends PopUpController {
 
     //TODO check if sizeField has integer
     public void accept() {
+        if(parent.isConnected()) {
+            sendSetRequest();
+            cancel();
+            return;
+        }
         character.setName(nameField.getText());
         if(!sizeField.getText().isEmpty()) {
             int newSize = Integer.parseInt(sizeField.getText());
@@ -100,6 +105,34 @@ public class CharacterSettingsController extends PopUpController {
         checkChanges(thirdBar, CharacterSquare.barType.third, thirdCurrentValue, thirdMaxValue, thirdColorPicker);
         character.setBarsOnStage();
         cancel();
+    }
+
+    private void sendSetRequest() {
+        String color1 = firstColorPicker.getValue().toString();
+        String color2 = secondColorPicker.getValue().toString();
+        String color3 = thirdColorPicker.getValue().toString();
+        if(firstCurrentValue.getText().trim().isEmpty() || firstMaxValue.getText().trim().isEmpty()) {
+            color1 = "null";
+        }
+        if(secondCurrentValue.getText().trim().isEmpty() || secondMaxValue.getText().trim().isEmpty()) {
+            color2 = "null";
+        }
+        if(thirdCurrentValue.getText().trim().isEmpty() || thirdMaxValue.getText().trim().isEmpty()) {
+            color3 = "null";
+        }
+        Double amount1 = fieldValue(firstCurrentValue);
+        Double amount2 = fieldValue(secondCurrentValue);
+        Double amount3 = fieldValue(thirdCurrentValue);
+        Double maxAmount1 = fieldValue(firstMaxValue);
+        Double maxAmount2 = fieldValue(secondMaxValue);
+        Double maxAmount3 = fieldValue(thirdMaxValue);
+        parent.getClient().
+                requestSetCharacter(character.getCid(), nameField.getText(), Integer.parseInt(sizeField.getText()),
+                        color1, amount1, maxAmount1, color2, amount2, maxAmount2, color3, amount3, maxAmount3);
+    }
+
+    private Double fieldValue(TextField field) {
+        return field.getText().trim().isEmpty() ? 0 : Double.parseDouble(field.getText());
     }
 
     // Function that checks changes to apply to bars of character
