@@ -9,19 +9,26 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Paint;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import main.*;
 import org.apache.log4j.Logger;
 import shapes.Arrow;
 import shapes.StatusBar;
 
+import java.beans.EventHandler;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -70,10 +77,10 @@ public class OfflineMapEditorController {
     // Variable which remembers where arrow started
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
-    private String chat = "";
     private Calendar cal = Calendar.getInstance();
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
     private int freeCid = 0;
+    Chat chat;
 
     // Client side
     private ClientSideSocket client = null;
@@ -267,7 +274,16 @@ public class OfflineMapEditorController {
     public TextField chatField;
 
     @FXML
-    public TextArea chatBox;
+    public ScrollPane chatBoxScrollPane;
+
+    @FXML
+    public AnchorPane chatBox;
+
+    @FXML
+    public ListView testListView;
+
+    @FXML
+    public Button testButton;
 
     @FXML
     public void initialize() {
@@ -321,6 +337,13 @@ public class OfflineMapEditorController {
 //            mapView.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
 //            mapView.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
 //        });
+        chat = new Chat(chatBox, chatBoxScrollPane, chatField,this, 0);
+        chatBox.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if(chat.isScrolled()) {
+                chatBoxScrollPane.setVvalue(chatBoxScrollPane.getVmax());
+            }
+        });
+
     }
 
     void setStage(Stage stage) { this.stage = stage; }
@@ -386,6 +409,7 @@ public class OfflineMapEditorController {
 
     public void setPID(int PID) {
         this.PID = PID;
+        chat.setPID(PID);
     }
 
     public void setNickname(String nickname) {
@@ -415,27 +439,16 @@ public class OfflineMapEditorController {
 
     @FXML
     void sendMessage() {
-        if(chatField.getText().trim().isEmpty()) {
+        String msg = chatField.getText().trim();
+        if(msg.isEmpty()) {
             return;
         }
-        if(isConnected()) {
-            client.sendMessage(PID, chatField.getText());
-            chatField.setText("");
-        } else {
-            receiveMessage("OFFLINE", "You're disconnected!");
-        }
+        chat.sendMessage(msg);
     }
 
-    public void receiveMessage(String nickname, String message) {
-        Platform.runLater(() -> {
-            chat += nickname + "(" + sdf.format(cal.getTime()) + "): " + message + '\n';
-            chatBox.setText(chat);
-                });
-    }
-
-    public void broadcastMessage(String nickname, String message) {
+    public void broadcastMessage(String message, String arguments) {
         for(Player player : playersList) {
-            player.receiveMessage(nickname, message);
+            player.getSocket().sendMessage(message, arguments);
         }
     }
 
@@ -534,6 +547,10 @@ public class OfflineMapEditorController {
             }
         }
         throw new IllegalArgumentException();
+    }
+
+    public Chat getChat() {
+        return chat;
     }
 
     @FXML

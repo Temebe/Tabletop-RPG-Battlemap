@@ -40,7 +40,7 @@ public class ClientSideSocket extends Thread{
         String input;
         String[] data;
         try {
-            // TODO need to think about moving this to separate methods
+            // TODO Definitely move this to the methods
             while((input = in.readLine()) != null) {
                 System.out.println("CLIENTSIDESOCKET: " + input);
                 data = input.split(":", 2);
@@ -49,9 +49,12 @@ public class ClientSideSocket extends Thread{
                     controller.setPID(Integer.parseInt(data[0]));
                     controller.setNickname(data[1]);
                 }
-                if(data[0].equalsIgnoreCase("MSG_BRD")) {
-                    data = data[1].split(":", 2);
-                    controller.receiveMessage(data[0], data[1]);
+                if(data[0].equalsIgnoreCase("MSG_ACT")) {
+                    int separator = data[1].lastIndexOf(":");
+                    String message = data[1].substring(0, separator);
+                    String arguments = data[1].substring(separator + 1);
+                    System.out.println(message + "---" + arguments);
+                    Platform.runLater(() -> controller.getChat().writeDownMessage(message, arguments));
                 }
                 if(data[0].equalsIgnoreCase("MAP_TRA")) {
                     int mapSize = Integer.parseInt(data[1]);
@@ -107,6 +110,10 @@ public class ClientSideSocket extends Thread{
 
     public void sendMessage(int PID, String msg) {
         out.println("MSG:" + PID + ":" + msg);
+    }
+
+    public void requestMessage(int PID, String msg) {
+        out.println("MSG_REQ:" + PID + ":" + msg);
     }
 
     public void requestDrawing(int posX, int posY, String imagePath, int layerNum) {

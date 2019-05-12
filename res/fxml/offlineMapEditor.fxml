@@ -16,7 +16,7 @@
         <Menu mnemonicParsing="false" text="File">
           <items>
             <MenuItem mnemonicParsing="false" onAction="#popUpNewMapSettings" text="New" />
-            <MenuItem mnemonicParsing="false" text="Open..." onAction="#loadMap" />
+            <MenuItem mnemonicParsing="false" onAction="#loadMap" text="Open..." />
             <Menu mnemonicParsing="false" text="Open Recent" />
             <SeparatorMenuItem mnemonicParsing="false" />
             <MenuItem mnemonicParsing="false" onAction="#closeMap" text="Close" />
@@ -114,7 +114,11 @@
                   <children>
                     <TextField fx:id="chatField" layoutX="14.0" layoutY="341.0" prefWidth="287.0" />
                     <Button contentDisplay="GRAPHIC_ONLY" defaultButton="true" graphicTextGap="4.0" layoutX="301.0" layoutY="341.0" mnemonicParsing="false" onAction="#sendMessage" opacity="1.0" prefWidth="36.0" text="Send" textAlignment="LEFT" textOverrun="ELLIPSIS" wrapText="false" />
-                    <TextArea fx:id="chatBox" blendMode="SRC_OVER" disable="false" editable="false" focusTraversable="false" layoutX="14.0" layoutY="14.0" prefHeight="313.0" prefWidth="287.0" wrapText="true" />
+                    <ScrollPane id="chatBox" fx:id="chatBoxScrollPane" hbarPolicy="NEVER" layoutX="16.0" layoutY="14.0" prefHeight="313.0" prefWidth="320.0">
+                      <content>
+                        <AnchorPane id="Content" fx:id="chatBox" minHeight="0.0" minWidth="0.0" prefHeight="314.0" prefWidth="319.0" />
+                      </content>
+                    </ScrollPane>
                   </children>
                 </AnchorPane>
               </content>

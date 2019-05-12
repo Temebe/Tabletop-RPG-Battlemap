@@ -8,6 +8,7 @@ import javafx.stage.Stage;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.PrintStream;
 
 public class Main extends Application {
 
@@ -17,6 +18,7 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception{
+        System.setOut(new PrintStream(System.out, true, "utf-8"));
         this.primaryStage = primaryStage;
         FXMLLoader fxmlLoader = new FXMLLoader();
         Parent root = fxmlLoader.load(getClass().getResource("/fxml/login.fxml"));
