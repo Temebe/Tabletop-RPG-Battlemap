@@ -160,6 +160,9 @@ public class Chat {
 
     // SERVER SIDE METHODS //
     public void receiveMessage(String msg, int PID) {
+        if(msg.length() > 1000) {
+            return;
+        }
         String nickname;
         try {
             nickname = controller.getPlayerNick(PID);
@@ -186,13 +189,18 @@ public class Chat {
         int diceAmount = Integer.parseInt(arguments.split("d")[0]);
         int diceSize = Integer.parseInt(arguments.split("d")[1]);
         int rand;
+        int sum = 0;
+        if(diceAmount > 10) {
+            diceAmount = 10;
+        }
         StringBuilder builder = new StringBuilder();
         builder.append("rolled ").append(arguments).append(": ");
         for(int i = 0; i < diceAmount; i++) {
             rand = (int)(Math.random() * diceSize) + 1;
+            sum += rand;
             builder.append(rand).append(" ");
         }
-        builder.deleteCharAt(builder.lastIndexOf(" "));
+        builder.append("Sum of rolls: ").append(sum);
         return builder.toString();
     }
 }
