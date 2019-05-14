@@ -6,7 +6,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import shapes.StatusBar;
 
-import static controllers.OfflineMapEditorController.tileSize;
+import static controllers.BattlemapController.tileSize;
 
 // TODO posX and posY seem to be obsolete
 public class CharacterSquare extends Button {

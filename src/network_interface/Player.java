@@ -1,4 +1,4 @@
-package main;
+package network_interface;
 
 // Permission groups: 0 means GM (host), 1 means player, may be expanded
 
@@ -14,7 +14,7 @@ public class Player {
     }
 
     public void receiveMessage(String nickname, String message) {
-        serverSideSocket.sendMessage(nickname, message);
+        serverSideSocket.sendChatMessage(nickname, message);
     }
 
     public void setNickname(String nickname) {

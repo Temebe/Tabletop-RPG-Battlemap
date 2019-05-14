@@ -8,14 +8,14 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import main.ClientSideSocket;
-import main.Server;
+import network_interface.ClientSideSocket;
+import network_interface.Server;
 
 import java.io.IOException;
 
 public class LoginController {
     private boolean gmPasswordVisible = false;
-    OfflineMapEditorController controller;
+    BattlemapController controller;
 
     @FXML
     public Button offlineButton;
@@ -46,12 +46,12 @@ public class LoginController {
 
     public void startOfflineMode() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/offlineMapEditor.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/battlemap.fxml"));
             Stage stage = (Stage) offlineButton.getScene().getWindow();
             Scene scene = new Scene(loader.load());
             stage.setScene(scene);
             stage.setTitle("untitled - Tabletop RPG Battlemap");
-            controller = (OfflineMapEditorController)loader.getController();
+            controller = (BattlemapController)loader.getController();
             controller.setStage(stage);
             // Line below initializes actions that need stage to be already created
             // which is not the case for initialize method

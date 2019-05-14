@@ -4,7 +4,7 @@ import javafx.scene.Group;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 
-import static controllers.OfflineMapEditorController.tileSize;
+import static controllers.BattlemapController.tileSize;
 
 public class StatusBar extends Group {
     private Rectangle background;

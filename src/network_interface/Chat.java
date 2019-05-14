@@ -1,11 +1,13 @@
-package main;
+package network_interface;
 
-import controllers.OfflineMapEditorController;
+import controllers.BattlemapController;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
@@ -17,9 +19,10 @@ import java.util.ListIterator;
 public class Chat {
     private ScrollPane scrollPane;
     private AnchorPane chatBox;
-    private OfflineMapEditorController controller;
+    private BattlemapController controller;
     private TextField chatField;
     private int PID;
+    private int lastPMPID = -1;
     // height position of last
     private double lastHeight = 15;
     // information whether bar was scrolled when
@@ -32,8 +35,9 @@ public class Chat {
     private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
 
 
+    // TODO I should use here more string format
     public Chat(AnchorPane chatBox, ScrollPane scrollPane, TextField chatField,
-                OfflineMapEditorController controller, int PID) {
+                BattlemapController controller, int PID) {
         this.chatBox = chatBox;
         this.chatField = chatField;
         this.controller = controller;
@@ -62,12 +66,38 @@ public class Chat {
             writeDownMessage("You're disconnected from server!");
         }
         if(properMessage(msg)) {
-            controller.getClient().requestMessage(PID, msg);
+            if(isLocalCommand(msg)) {
+                chatField.clear();
+                return;
+            }
+            if(msg.startsWith("/r ")) {
+                if(lastPMPID != -1) {
+                    msg = msg.replace("/r ", "/pm " + lastPMPID);
+                } else {
+                    writeDownMessage("No target for /r", "error");
+                }
+            }
+            controller.getClient().requestChatMessage(PID, msg);
             archiveMessage(msg);
             chatField.clear();
         } else {
-            writeDownMessage("Message is not proper");
+            writeDownMessage("Message is not proper", "error");
         }
+    }
+
+    private boolean isLocalCommand(String msg) {
+        if(msg.startsWith("/h") || msg.startsWith("/help")) {
+            printHelp();
+        }
+        return false;
+    }
+
+    private void printHelp() {
+        writeDownMessage("List of commands");
+        writeDownMessage("/h(elp) - print available commands");
+        writeDownMessage("/me <message> - write an action you or your character does");
+        writeDownMessage("/roll <int>d<int> - roll few dices with few sides");
+        writeDownMessage("/r <message> - fast repeat for PM message");
     }
 
     private void archiveMessage(String msg) {
@@ -84,17 +114,17 @@ public class Chat {
         if(msg.startsWith("/")) {
             return properCommand(msg);
         }
-        char firstChar = msg.charAt(0);
-        if(!Character.isAlphabetic(firstChar) && !Character.isDigit(firstChar)) {
-            return false;
-        }
         return true;
     }
 
     private boolean properCommand(String msg) {
         String command = msg.substring(1).split(" ")[0];
-        if(command.equalsIgnoreCase("roll")) return true;
-        if(command.equalsIgnoreCase("me")) return true;
+        if(command.equals("roll")) return true;
+        if(command.equals("me")) return true;
+        if(command.equals("pm")) return true;
+        if(command.equals("r")) return true;
+        if(command.equals("h")) return true;
+        if(command.equals("help")) return true;
         return false;
     }
 
@@ -102,16 +132,10 @@ public class Chat {
         writeDownMessage(msg, "none");
     }
 
-    // TODO provide arguments with handling of multiple arguments
     public void writeDownMessage(String msg, String arguments) {
         scrolled = false;
         System.out.println(msg);
-        Text text = new Text(msg);
-        if(arguments.equalsIgnoreCase("bold")) {
-            text.setFont(Font.font(null, FontWeight.BOLD, fontSize));
-        } else {
-            text.setFont(Font.font(fontSize));
-        }
+        Text text = formatText(msg, arguments);
         chat.add(text);
         chatBox.getChildren().add(text);
         text.setLayoutY(lastHeight);
@@ -123,6 +147,22 @@ public class Chat {
         if(lastHeight > chatBox.getPrefHeight()) {
             chatBox.setPrefHeight(lastHeight);
         }
+    }
+
+    // TODO add multiple arguments handling
+    private Text formatText(String msg, String arguments) {
+        Text text = new Text(msg);
+        if(arguments.equalsIgnoreCase("bold")) {
+            text.setFont(Font.font(null, FontWeight.BOLD, fontSize));
+        } else if(arguments.equalsIgnoreCase("italic")) {
+            text.setFont(Font.font(null, FontPosture.ITALIC, fontSize));
+        } else {
+            text.setFont(Font.font(fontSize));
+        }
+        if(arguments.equalsIgnoreCase("error")) {
+            text.setFill(Color.RED);
+        }
+        return text;
     }
 
     public boolean isScrolled() {
@@ -160,34 +200,51 @@ public class Chat {
 
     // SERVER SIDE METHODS //
     public void receiveMessage(String msg, int PID) {
-        if(msg.length() > 1000) {
-            return;
-        }
         String nickname;
         try {
             nickname = controller.getPlayerNick(PID);
         } catch (Exception e) {
             return;
         }
+        if(msg.length() > 1000) {
+            controller.sendMessage("Message is too long!", "error", PID);
+            return;
+        }
         msg = msg.trim();
         if(!msg.startsWith("/")) {
-            controller.broadcastMessage("[" + sdf.format(cal.getTime()) + "]"
+            controller.broadcastChatMessage("[" + sdf.format(cal.getTime()) + "]"
                             + nickname + "(" + PID + "): " + msg,
                     "none");
             return;
         }
-        if(msg.startsWith("/roll")) {
-            controller.broadcastMessage(nickname + " " + roll(msg.split(" ")[1]), "none");
+        if(msg.startsWith("/roll ")) {
+            try {
+                controller.broadcastChatMessage(nickname + " " + roll(msg.split(" ")[1]), "none");
+            } catch (IllegalArgumentException e) {
+                controller.sendMessage("Improper arguments for command roll!", "error", PID);
+            }
         }
         if(msg.startsWith("/me ")) {
             msg = msg.substring("/me ".length());
-            controller.broadcastMessage(nickname + " " + msg, "bold");
+            controller.broadcastChatMessage(nickname + " " + msg, "bold");
+        }
+        if(msg.startsWith("/pm ")) {
+            privateMessage(PID, msg.substring("/pm ".length()));
         }
     }
 
-    private String roll(String arguments) {
-        int diceAmount = Integer.parseInt(arguments.split("d")[0]);
-        int diceSize = Integer.parseInt(arguments.split("d")[1]);
+    private String roll(String arguments) throws IllegalArgumentException {
+        int diceAmount;
+        int diceSize;
+        try {
+            diceAmount = Integer.parseInt(arguments.split("d")[0]);
+            diceSize = Integer.parseInt(arguments.split("d")[1]);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Improper arguments");
+        }
+        if(diceAmount < 0 || diceSize < 0) {
+            throw new IllegalArgumentException("Negative values, expected equal or greater than 0");
+        }
         int rand;
         int sum = 0;
         if(diceAmount > 10) {
@@ -202,5 +259,36 @@ public class Chat {
         }
         builder.append("Sum of rolls: ").append(sum);
         return builder.toString();
+    }
+
+    private void privateMessage(int sourcePID, String data) {
+        Player source = controller.getPlayer(sourcePID);
+        Player destination;
+        data = data.trim();
+        String[] dataArray = data.split(" ", 2);
+        if(isInteger(dataArray[0])) {
+            destination = controller.getPlayer(Integer.parseInt(dataArray[0]));
+        } else {
+            destination = controller.getPlayer(dataArray[0]);
+        }
+        if(destination == null) {
+            controller.sendMessage("Couldn't reach player!", "error", sourcePID);
+            return;
+        }
+        String msgToSource = String.format("[%s]To %s(%d): %s", sdf.format(cal.getTime()), destination.getNickname(),
+                destination.getPID(), dataArray[1]);
+        String msgToDestination = String.format("[%s]From %s(%d): %s", sdf.format(cal.getTime()), source.getNickname(),
+                sourcePID, dataArray[1]);
+        controller.sendMessage(msgToSource, "italic", sourcePID);
+        controller.sendMessage(msgToDestination, "italic", destination.getPID());
+    }
+
+    boolean isInteger(String string) {
+        for(char character : string.toCharArray()) {
+            if(!Character.isDigit(character)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

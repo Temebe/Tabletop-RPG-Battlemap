@@ -1,9 +1,9 @@
 package controllers;
 
 public class PopUpController {
-    protected OfflineMapEditorController parent;
+    protected BattlemapController parent;
 
-    public void setParent(OfflineMapEditorController parent) {
+    public void setParent(BattlemapController parent) {
         this.parent = parent;
     }
 }

@@ -1,6 +1,6 @@
-package main;
+package network_interface;
 
-import controllers.OfflineMapEditorController;
+import controllers.BattlemapController;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -31,10 +31,10 @@ public class ServerSideSocket extends Thread {
     private Socket socket;
     private InputStream in = null;
     private OutputStream out = null;
-    OfflineMapEditorController controller;
+    BattlemapController controller;
     private static final Logger log = Logger.getLogger(ServerSideSocket.class);
 
-    public ServerSideSocket(int port, Socket socket, OfflineMapEditorController controller) {
+    public ServerSideSocket(int port, Socket socket, BattlemapController controller) {
         this.port = port;
         this.socket = socket;
         this.controller = controller;
@@ -125,7 +125,7 @@ public class ServerSideSocket extends Thread {
                 color3, amount3, maxAmount3);
     }
 
-    public void setController(OfflineMapEditorController controller) {
+    public void setController(BattlemapController controller) {
         this.controller = controller;
     }
 
@@ -138,7 +138,7 @@ public class ServerSideSocket extends Thread {
         }
     }
 
-    public void sendMessage(String message, String arguments) {
+    public void sendChatMessage(String message, String arguments) {
         String msg = "MSG_ACT:" + message + ":" + arguments + '\n';
         try {
             out.write(msg.getBytes());
@@ -243,6 +243,20 @@ public class ServerSideSocket extends Thread {
             out.write(msg.getBytes());
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void disconnect() {
+        disconnect("No reason was given");
+    }
+
+    public void disconnect(String message) {
+        sendChatMessage("You were kicked from server: " + message, "error");
+        controller.logOutPlayer(this);
+        try {
+            in.close();
+            out.close();
+        } catch (IOException ignored) {
         }
     }
 }

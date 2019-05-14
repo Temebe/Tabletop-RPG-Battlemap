@@ -9,26 +9,20 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Paint;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 import main.*;
+import network_interface.*;
 import org.apache.log4j.Logger;
 import shapes.Arrow;
 import shapes.StatusBar;
 
-import java.beans.EventHandler;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,9 +32,9 @@ import java.util.HashMap;
 
 //TODO Get rid of useless event parameters
 //TODO Make two layers of firstLayer
-public class OfflineMapEditorController {
+public class BattlemapController {
 
-    private static final Logger log = Logger.getLogger(OfflineMapEditorController.class);
+    private static final Logger log = Logger.getLogger(BattlemapController.class);
     static final int tilesGap = 10;
     public static final int tileSize = 50;
     static final int tileStartingPosY = 30;
@@ -369,6 +363,7 @@ public class OfflineMapEditorController {
     // TODO set maximum nick size? or sth
     public void logInPlayer(String nickname, ServerSideSocket socket) {
         Player newPlayer = new Player(socket);
+        nickname = nickname.replace(" ", "_");
         if(playersList.isEmpty()) {
             newPlayer.setNickname(nickname);
             newPlayer.setPermissionGroup(0);
@@ -438,7 +433,7 @@ public class OfflineMapEditorController {
     }
 
     @FXML
-    void sendMessage() {
+    void sendChatMessage() {
         String msg = chatField.getText().trim();
         if(msg.isEmpty()) {
             return;
@@ -446,10 +441,35 @@ public class OfflineMapEditorController {
         chat.sendMessage(msg);
     }
 
-    public void broadcastMessage(String message, String arguments) {
+    public void broadcastChatMessage(String message, String arguments) {
         for(Player player : playersList) {
-            player.getSocket().sendMessage(message, arguments);
+            player.getSocket().sendChatMessage(message, arguments);
         }
+    }
+
+    public void sendMessage(String message, String arguments, int PID) {
+        Player player = getPlayer(PID);
+        if(player != null) {
+            player.getSocket().sendChatMessage(message, arguments);
+        }
+    }
+
+    public Player getPlayer(int PID) {
+        for(Player player : playersList) {
+            if(player.getPID() == PID) {
+                return player;
+            }
+        }
+        return null;
+    }
+
+    public Player getPlayer(String nickname) {
+        for(Player player : playersList) {
+            if(player.getNickname().equals(nickname)) {
+                return player;
+            }
+        }
+        return null;
     }
 
     public void broadcastCloseMap() {
@@ -493,13 +513,6 @@ public class OfflineMapEditorController {
                 if(log.isDebugEnabled()) log.debug("Sending map to " + p.getPID());
                 p.getSocket().sendMap(map);
             }
-        });
-    }
-
-    public void sendMapToPlayer(Player player, File map) {
-        Platform.runLater(() -> {
-            saveMapToFile(map, true);
-            player.getSocket().sendMap(map);
         });
     }
 

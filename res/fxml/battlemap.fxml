@@ -9,7 +9,7 @@
 <?import javafx.scene.paint.*?>
 <?import javafx.scene.text.*?>
 
-<VBox id="VBox" mouseTransparent="false" prefHeight="600.0" prefWidth="900.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.OfflineMapEditorController">
+<VBox id="VBox" mouseTransparent="false" prefHeight="600.0" prefWidth="900.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.BattlemapController">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>
@@ -113,7 +113,7 @@
                 <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                   <children>
                     <TextField fx:id="chatField" layoutX="14.0" layoutY="341.0" prefWidth="287.0" />
-                    <Button contentDisplay="GRAPHIC_ONLY" defaultButton="true" graphicTextGap="4.0" layoutX="301.0" layoutY="341.0" mnemonicParsing="false" onAction="#sendMessage" opacity="1.0" prefWidth="36.0" text="Send" textAlignment="LEFT" textOverrun="ELLIPSIS" wrapText="false" />
+                    <Button contentDisplay="GRAPHIC_ONLY" defaultButton="true" graphicTextGap="4.0" layoutX="301.0" layoutY="341.0" mnemonicParsing="false" onAction="#sendChatMessage" opacity="1.0" prefWidth="36.0" text="Send" textAlignment="LEFT" textOverrun="ELLIPSIS" wrapText="false" />
                     <ScrollPane id="chatBox" fx:id="chatBoxScrollPane" hbarPolicy="NEVER" layoutX="16.0" layoutY="14.0" prefHeight="313.0" prefWidth="320.0">
                       <content>
                         <AnchorPane id="Content" fx:id="chatBox" minHeight="0.0" minWidth="0.0" prefHeight="314.0" prefWidth="319.0" />

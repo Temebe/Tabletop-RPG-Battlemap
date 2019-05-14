@@ -1,6 +1,6 @@
-package main;
+package network_interface;
 
-import controllers.OfflineMapEditorController;
+import controllers.BattlemapController;
 import javafx.application.Platform;
 import org.apache.log4j.Logger;
 
@@ -11,7 +11,7 @@ import java.net.UnknownHostException;
 public class ClientSideSocket extends Thread{
     private int port;
     private String host;
-    private OfflineMapEditorController controller;
+    private BattlemapController controller;
     Socket socket = null;
     private PrintWriter out = null;
     private BufferedReader in = null;
@@ -100,7 +100,7 @@ public class ClientSideSocket extends Thread{
         }
     }
 
-    public void setController(OfflineMapEditorController controller) {
+    public void setController(BattlemapController controller) {
         this.controller = controller;
     }
 
@@ -108,11 +108,7 @@ public class ClientSideSocket extends Thread{
         out.println("REQ_NAM:" + nickname);
     }
 
-    public void sendMessage(int PID, String msg) {
-        out.println("MSG:" + PID + ":" + msg);
-    }
-
-    public void requestMessage(int PID, String msg) {
+    public void requestChatMessage(int PID, String msg) {
         out.println("MSG_REQ:" + PID + ":" + msg);
     }
 

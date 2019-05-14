@@ -1,13 +1,13 @@
-package main;
+package network_interface;
 
-import controllers.OfflineMapEditorController;
+import controllers.BattlemapController;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 
 public class Server extends Thread {
     private ServerSocket server = null;
-    private OfflineMapEditorController controller;
+    private BattlemapController controller;
     private final int port;
 
     public Server(int port) {
@@ -36,7 +36,7 @@ public class Server extends Thread {
         }
     }
 
-    public void setController(OfflineMapEditorController controller) {
+    public void setController(BattlemapController controller) {
         this.controller = controller;
     }
 
