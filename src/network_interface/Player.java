@@ -8,6 +8,7 @@ public class Player {
     private ServerSideSocket serverSideSocket;
     private int permissionGroup = 1;
     private int PID;
+    private int lastPMSender = -1;
 
     public Player(ServerSideSocket serverSideSocket) {
         this.serverSideSocket = serverSideSocket;
@@ -47,5 +48,13 @@ public class Player {
 
     public ServerSideSocket getSocket() {
         return serverSideSocket;
+    }
+
+    public void setLastPMSender(int lastPMSender) {
+        this.lastPMSender = lastPMSender;
+    }
+
+    public int getLastPMSender() {
+        return lastPMSender;
     }
 }

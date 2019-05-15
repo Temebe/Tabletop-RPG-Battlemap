@@ -40,64 +40,120 @@ public class ClientSideSocket extends Thread{
         String input;
         String[] data;
         try {
-            // TODO Definitely move this to the methods
             while((input = in.readLine()) != null) {
-                System.out.println("CLIENTSIDESOCKET: " + input);
                 data = input.split(":", 2);
                 if(data[0].equalsIgnoreCase("LOGGED")) {
-                    data = data[1].split(":", 2);
-                    controller.setPID(Integer.parseInt(data[0]));
-                    controller.setNickname(data[1]);
+                    logged(data[1].split(":", 2));
                 }
                 if(data[0].equalsIgnoreCase("MSG_ACT")) {
-                    int separator = data[1].lastIndexOf(":");
-                    String message = data[1].substring(0, separator);
-                    String arguments = data[1].substring(separator + 1);
-                    System.out.println(message + "---" + arguments);
-                    Platform.runLater(() -> controller.getChat().writeDownMessage(message, arguments));
+                    msgAct(data[1]);
                 }
                 if(data[0].equalsIgnoreCase("MAP_TRA")) {
-                    int mapSize = Integer.parseInt(data[1]);
-                    receiveMap(mapSize);
+                    mapTra(data[1]);
                 }
                 if(data[0].equalsIgnoreCase("DRAW_ACT")) {
-                    data = data[1].split(":", 4);
-                    String imagePath = data[0];
-                    int posX = Integer.parseInt(data[1]);
-                    int posY = Integer.parseInt(data[2]);
-                    int layerNum = Integer.parseInt(data[3]);
-                    Platform.runLater(() -> controller.setMapSquareGraphic(posY, posX, imagePath, layerNum));
+                    drawAct(data[1].split(":", 4));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_CR_ACT")) {
-                    data = data[1].split(":", 4);
-                    String imagePath = data[0];
-                    int posX = Integer.parseInt(data[1]);
-                    int posY = Integer.parseInt(data[2]);
-                    int cid = Integer.parseInt(data[3]);
-                    Platform.runLater(() -> controller.putCharacterOnSquare(posX, posY, imagePath, cid));
+                    charCrAct(data[1].split(":", 4));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_DL_ACT")) {
-                    int cid = Integer.parseInt(data[1]);
-                    Platform.runLater(() -> controller.deleteCharacter(cid));
+                    charDlAct(data[1]);
                 }
                 if(data[0].equalsIgnoreCase("CHAR_MOV_ACT")) {
-                    data = data[1].split(":", 4);
-                    int posX = Integer.parseInt(data[1]);
-                    int posY = Integer.parseInt(data[2]);
-                    int cid = Integer.parseInt(data[0]);
-                    Platform.runLater(() -> controller.moveCharacter(cid, posX, posY));
+                    charMovAct(data[1].split(":", 4));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_SET_ACT")) {
                     String[] characterData = data[1].split(":", 12);
                     Platform.runLater(() -> controller.setCharacter(characterData));
                 }
-//                if(data[0].equalsIgnoreCase("CLS_MAP")) {
-//                    controller.closeMap();
-//                }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Connection with server lost.");
+        } finally {
+            controller.logOut();
+            try {
+                in.close();
+                out.close();
+                socket.close();
+            } catch (IOException ignored) { }
         }
+    }
+
+    private void logged(String[] data) {
+        controller.setPID(Integer.parseInt(data[0]));
+        controller.setNickname(data[1]);
+    }
+
+    private void msgAct(String data) {
+        int separator = data.lastIndexOf(":");
+        if(separator == -1) {
+            log.error("Message data was corrupted");
+        }
+        try {
+            String message = data.substring(0, separator);
+            String arguments = data.substring(separator + 1);
+            Platform.runLater(() -> controller.getChat().writeDownMessage(message, arguments));
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("Client received corrupted message acceptance data");
+        }
+    }
+
+    private void mapTra(String data) {
+        try {
+            int mapSize = Integer.parseInt(data);
+            receiveMap(mapSize);
+        } catch (NumberFormatException e) {
+            log.error("Client received wrong map info, unable to load map");
+        }
+    }
+
+    private void drawAct(String[] data) {
+        try {
+            String imagePath = data[0];
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            int layerNum = Integer.parseInt(data[3]);
+            Platform.runLater(() -> controller.setMapSquareGraphic(posY, posX, imagePath, layerNum));
+        } catch (NumberFormatException e) {
+            log.error("Client received corrupted drawing data");
+        }
+    }
+
+    private void charCrAct(String[] data) {
+        try {
+            String imagePath = data[0];
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            int cid = Integer.parseInt(data[3]);
+            Platform.runLater(() -> controller.putCharacterOnSquare(posX, posY, imagePath, cid));
+        } catch (NumberFormatException e) {
+            log.error("Client received corrupted character creation data");
+        }
+    }
+
+    private void charDlAct(String data) {
+        try {
+            int cid = Integer.parseInt(data);
+            Platform.runLater(() -> controller.deleteCharacter(cid));
+        } catch (NumberFormatException e) {
+            log.error("Client received improper character id, cannot delete character");
+        }
+    }
+
+    private void charMovAct(String[] data) {
+        try {
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            int cid = Integer.parseInt(data[0]);
+            Platform.runLater(() -> controller.moveCharacter(cid, posX, posY));
+        } catch (NumberFormatException e) {
+            log.error("Client received corrupted character move data, cannot move character");
+        }
+    }
+
+    private void charSetAct(String[] data) {
+
     }
 
     public void setController(BattlemapController controller) {

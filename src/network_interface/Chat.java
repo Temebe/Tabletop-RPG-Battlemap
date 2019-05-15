@@ -70,13 +70,6 @@ public class Chat {
                 chatField.clear();
                 return;
             }
-            if(msg.startsWith("/r ")) {
-                if(lastPMPID != -1) {
-                    msg = msg.replace("/r ", "/pm " + lastPMPID);
-                } else {
-                    writeDownMessage("No target for /r", "error");
-                }
-            }
             controller.getClient().requestChatMessage(PID, msg);
             archiveMessage(msg);
             chatField.clear();
@@ -134,7 +127,6 @@ public class Chat {
 
     public void writeDownMessage(String msg, String arguments) {
         scrolled = false;
-        System.out.println(msg);
         Text text = formatText(msg, arguments);
         chat.add(text);
         chatBox.getChildren().add(text);
@@ -231,6 +223,9 @@ public class Chat {
         if(msg.startsWith("/pm ")) {
             privateMessage(PID, msg.substring("/pm ".length()));
         }
+        if(msg.startsWith("/r ")) {
+            fastRepeat(PID, msg.substring("/r ".length()));
+        }
     }
 
     private String roll(String arguments) throws IllegalArgumentException {
@@ -261,6 +256,12 @@ public class Chat {
         return builder.toString();
     }
 
+    // TODO split private message so you just give PID and not build String in order to split it again
+    private void fastRepeat(int sourcePID, String message) {
+        Player source = controller.getPlayer(sourcePID);
+        privateMessage(sourcePID, source.getLastPMSender() + " " + message);
+    }
+
     private void privateMessage(int sourcePID, String data) {
         Player source = controller.getPlayer(sourcePID);
         Player destination;
@@ -281,9 +282,10 @@ public class Chat {
                 sourcePID, dataArray[1]);
         controller.sendMessage(msgToSource, "italic", sourcePID);
         controller.sendMessage(msgToDestination, "italic", destination.getPID());
+        destination.setLastPMSender(sourcePID);
     }
 
-    boolean isInteger(String string) {
+    private boolean isInteger(String string) {
         for(char character : string.toCharArray()) {
             if(!Character.isDigit(character)) {
                 return false;

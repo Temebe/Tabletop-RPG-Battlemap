@@ -47,82 +47,132 @@ public class ServerSideSocket extends Thread {
             in = socket.getInputStream();
             out = socket.getOutputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
-            System.out.println("New client connected from " + socket.getInetAddress().getHostAddress());
+            log.info("New client connected from " + socket.getInetAddress().getHostAddress());
             String request;
             String[] data;
             while ((request = br.readLine()) != null) {
-                System.out.println("SERVERSIDESOCKET: " + request);
                 data = request.split(":", 2);
                 if(data[0].equalsIgnoreCase("REQ_NAM")) {
                     controller.logInPlayer(data[1], this);
                 }
                 if(data[0].equalsIgnoreCase("MSG_REQ")) {
-                    data = data[1].split(":", 2);
-                    int PID = Integer.parseInt(data[0]);
-                    controller.getChat().receiveMessage(data[1], PID);
+                    msgReq(data[1].split(":", 2));
                 }
                 // TODO permissions check
-                // TODO think about resolving duplicate code problem
                 if(data[0].equalsIgnoreCase("DRAW_REQ")) {
-                    data = data[1].split(":", 4);
-                    String path = data[0];
-                    int posX = Integer.parseInt(data[1]);
-                    int posY = Integer.parseInt(data[2]);
-                    int layerNum = Integer.parseInt(data[3]);
-                    controller.broadcastDrawing(posX, posY, path, layerNum);
+                    drawReq(data[1].split(":", 4));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_CR_REQ")) {
-                    data = data[1].split(":", 3);
-                    controller.broadcastCreatingCharacter(Integer.parseInt(data[1]), Integer.parseInt(data[2]),
-                            data[0]);
+                    charCrReq(data[1].split(":", 3));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_DL_REQ")) {
-                    controller.broadcastDeletingCharacter(Integer.parseInt(data[1]));
+                    charDlReq(data[1]);
                 }
                 if(data[0].equalsIgnoreCase("CHAR_MOV_REQ")) {
-                    data = data[1].split(":", 3);
-                    int cid = Integer.parseInt(data[0]);
-                    int posX = Integer.parseInt(data[1]);
-                    int posY = Integer.parseInt(data[2]);
-                    controller.broadcastMovingCharacter(cid, posX, posY);
+                    charMovReq(data[1].split(":", 3));
                 }
                 if(data[0].equalsIgnoreCase("CHAR_SET_REQ")) {
                     data = data[1].split(":", 12);
-                    char_set_act(data);
+                    charSetAct(data);
                 }
             }
         } catch (IOException e) {
-            System.out.println("There was some problems with streams from client.");
+            log.error("Lost connection with player");
         } finally {
             controller.logOutPlayer(this);
             try {
                 in.close();
                 out.close();
                 socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            } catch (IOException ignored) { }
         }
     }
 
-    //TODO do I want to use this naming convention?
-    private void char_set_act(String[] data) {
-        int cid = Integer.parseInt(data[0]);
-        String name = data[1];
-        int size = Integer.parseInt(data[2]);
-        String color1 = data[3];
-        double amount1 = Double.parseDouble(data[4]);
-        double maxAmount1 = Double.parseDouble(data[5]);
-        String color2 = data[6];
-        double amount2 = Double.parseDouble(data[7]);
-        double maxAmount2 = Double.parseDouble(data[8]);
-        String color3 = data[9];
-        double amount3 = Double.parseDouble(data[10]);
-        double maxAmount3 = Double.parseDouble(data[11]);
-        controller.broadcastSettingCharacter(cid, name, size,
-                color1, amount1, maxAmount1,
-                color2, amount2, maxAmount2,
-                color3, amount3, maxAmount3);
+    private void msgReq(String[] data) {
+        try {
+            int PID = Integer.parseInt(data[0]);
+            controller.getChat().receiveMessage(data[1], PID);
+        } catch (NumberFormatException e) {
+            log.error("Server received improper PID for message request");
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("Server received corrupted data for message request");
+        }
+    }
+
+    private void drawReq(String[] data) {
+        try {
+            String path = data[0];
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            int layerNum = Integer.parseInt(data[3]);
+            controller.broadcastDrawing(posX, posY, path, layerNum);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("There was problem with given data for drawing tiles.");
+        } catch (NumberFormatException e) {
+            log.error("Server received improper data for drawing request.");
+        }
+    }
+
+    private void charCrReq(String[] data) {
+        try {
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            String imagePath = data[0];
+            controller.broadcastCreatingCharacter(posX, posY, imagePath);
+        } catch (NumberFormatException e) {
+            log.error("Server received improper position numbers for character creation request");
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("Server received improper data for character creation request");
+        }
+    }
+
+    private void charDlReq(String data) {
+        try {
+            int cid = Integer.parseInt(data);
+            controller.broadcastDeletingCharacter(cid);
+        } catch (NumberFormatException e) {
+            log.error("Server received improper character id for character deletion request");
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("Server received corrupted data for character deletion request");
+        }
+    }
+
+    private void charSetAct(String[] data) {
+        try {
+            int cid = Integer.parseInt(data[0]);
+            String name = data[1];
+            int size = Integer.parseInt(data[2]);
+            String color1 = data[3];
+            double amount1 = Double.parseDouble(data[4]);
+            double maxAmount1 = Double.parseDouble(data[5]);
+            String color2 = data[6];
+            double amount2 = Double.parseDouble(data[7]);
+            double maxAmount2 = Double.parseDouble(data[8]);
+            String color3 = data[9];
+            double amount3 = Double.parseDouble(data[10]);
+            double maxAmount3 = Double.parseDouble(data[11]);
+            controller.broadcastSettingCharacter(cid, name, size,
+                    color1, amount1, maxAmount1,
+                    color2, amount2, maxAmount2,
+                    color3, amount3, maxAmount3);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("There was problem with given data for character settings.");
+        } catch (NumberFormatException e) {
+            log.error("Server received improper data for character settings.");
+        }
+    }
+
+    private void charMovReq(String[] data) {
+        try {
+            int cid = Integer.parseInt(data[0]);
+            int posX = Integer.parseInt(data[1]);
+            int posY = Integer.parseInt(data[2]);
+            controller.broadcastMovingCharacter(cid, posX, posY);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            log.error("Server received corrupted data for character move request");
+        } catch (NumberFormatException e) {
+            log.error("Server received improper character id and/or positions");
+        }
     }
 
     public void setController(BattlemapController controller) {
@@ -246,17 +296,17 @@ public class ServerSideSocket extends Thread {
         }
     }
 
-    public void disconnect() {
-        disconnect("No reason was given");
+    public void kick() {
+        kick("No reason was given");
     }
 
-    public void disconnect(String message) {
-        sendChatMessage("You were kicked from server: " + message, "error");
+    public void kick(String reason) {
+        sendChatMessage("You were kicked from server: " + reason, "error");
         controller.logOutPlayer(this);
         try {
             in.close();
             out.close();
-        } catch (IOException ignored) {
-        }
+            socket.close();
+        } catch (IOException ignored) { }
     }
 }

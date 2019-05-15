@@ -123,6 +123,15 @@
                 </AnchorPane>
               </content>
             </Tab>
+            <Tab text="PLAYERS">
+              <content>
+                <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                  <children>
+                    <ListView fx:id="playersListView" layoutX="14.0" layoutY="14.0" prefHeight="439.0" prefWidth="323.0" />
+                  </children>
+                </AnchorPane>
+              </content>
+            </Tab>
           </tabs>
         </TabPane>
         <ScrollPane pickOnBounds="true" prefHeight="-1.0" prefWidth="-1.0">

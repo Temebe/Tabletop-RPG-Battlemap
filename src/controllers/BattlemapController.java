@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -83,6 +84,7 @@ public class BattlemapController {
     // Server side
     private Server server = null;
     private ArrayList<Player> playersList;
+    private ObservableList<String> observablePlayersList;
     private int freePID = 0; // PID that haven't been granted yet
 
     public enum packageType { characters, tiles }
@@ -274,10 +276,7 @@ public class BattlemapController {
     public AnchorPane chatBox;
 
     @FXML
-    public ListView testListView;
-
-    @FXML
-    public Button testButton;
+    public ListView playersListView;
 
     @FXML
     public void initialize() {
@@ -337,7 +336,6 @@ public class BattlemapController {
                 chatBoxScrollPane.setVvalue(chatBoxScrollPane.getVmax());
             }
         });
-
     }
 
     void setStage(Stage stage) { this.stage = stage; }
@@ -358,6 +356,21 @@ public class BattlemapController {
         this.server = server;
         this.client = client;
         playersList = new ArrayList<>();
+        observablePlayersList = FXCollections.observableArrayList();
+        playersListView.setItems(observablePlayersList);
+        setPlayersListViewUp();
+    }
+
+    void setPlayersListViewUp() {
+        playersListView.setOnMouseClicked(mouseEvent -> {
+            if(mouseEvent.getButton().equals(MouseButton.SECONDARY)
+                    || (mouseEvent.getButton().equals(MouseButton.PRIMARY) && mouseEvent.getClickCount() == 2)) {
+                String nickname = (String)playersListView.getSelectionModel().getSelectedItem();
+                if(nickname != null) {
+                    log.debug(nickname);
+                }
+            }
+        });
     }
 
     // TODO set maximum nick size? or sth
@@ -377,6 +390,7 @@ public class BattlemapController {
         playersList.add(newPlayer);
         newPlayer.setPID(freePID);
         socket.sendPID(freePID++, nickname);
+        Platform.runLater(() -> observablePlayersList.add(newPlayer.getNickname()));
         if(!mapSet) {
             return;
         }
@@ -389,9 +403,14 @@ public class BattlemapController {
         for (Player player : playersList) {
             if(player.getSocket() == socket) {
                 playersList.remove(player);
+                observablePlayersList.remove(player.getNickname());
                 return;
             }
         }
+    }
+
+    public void logOut() {
+        client = null;
     }
 
     void setClient(ClientSideSocket client) {
