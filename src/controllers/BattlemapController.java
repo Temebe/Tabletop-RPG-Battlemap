@@ -27,10 +27,7 @@ import shapes.StatusBar;
 
 import java.io.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
+import java.util.*;
 
 //TODO Get rid of useless event parameters
 //TODO Make two layers of firstLayer
@@ -76,6 +73,7 @@ public class BattlemapController {
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
     private DragDelta cameraDragDelta = new DragDelta();
+    private ArrayList<ToggleButton> toolbarButtons = new ArrayList<>();
     private int freeCid = 0;
     private Chat chat;
 
@@ -122,7 +120,16 @@ public class BattlemapController {
     public ToggleGroup mainToolbar;
 
     @FXML
+    public ToggleButton standardToolButton;
+
+    @FXML
     public ToggleButton drawToolButton;
+
+    @FXML
+    public ToggleButton rulerToolButton;
+
+    @FXML
+    public ToggleButton eraserToolButton;
 
     @FXML
     public ToggleButton secondLayerTglBtn;
@@ -302,12 +309,16 @@ public class BattlemapController {
     public void changeToolbarVisibility() {
         if(toolbarVisible) {
             toolbarVisible = false;
+            toolbar.getItems().removeAll(toolbarButtons);
             toolbar.setMaxHeight(0);
+            toolbar.setMinHeight(0);
             log.debug(toolbar.getHeight());
             toolbarVisibilityItem.setText("Show toolbar");
         } else {
             toolbarVisible = true;
+            toolbar.getItems().addAll(toolbarButtons);
             toolbar.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            toolbar.setMinHeight(Region.USE_COMPUTED_SIZE);
             log.debug(toolbar.getHeight());
             toolbarVisibilityItem.setText("Hide toolbar");
         }
@@ -356,6 +367,7 @@ public class BattlemapController {
         });
         characterVisibilityButton.setSelected(true);
         addCameraHandling();
+        setToolbarButtons();
         chat = new Chat(chatBox, chatBoxScrollPane, chatField,this, 0);
     }
 
@@ -424,6 +436,11 @@ public class BattlemapController {
         });
         mapView.setOnDragEntered(mouseDragEvent -> mapView.startFullDrag());
         mapView.setOnMouseDragged(mouseEvent -> moveCamera(mouseEvent, cameraDragDelta));
+    }
+
+    private void setToolbarButtons() {
+        toolbarButtons.addAll(Arrays.asList(standardToolButton, drawToolButton, rulerToolButton,
+                eraserToolButton, secondLayerTglBtn, characterVisibilityButton));
     }
 
     private void setPlayersListViewUp() {

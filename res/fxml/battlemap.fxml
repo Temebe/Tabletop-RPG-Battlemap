@@ -65,14 +65,14 @@
     </MenuBar>
     <ToolBar fx:id="toolbar">
       <items>
-        <ToggleButton mnemonicParsing="false" onAction="#setActionStandard" text="Standard" underline="false">
+        <ToggleButton fx:id="standardToolButton" mnemonicParsing="false" onAction="#setActionStandard" text="Standard" underline="false">
           <toggleGroup>
             <ToggleGroup fx:id="mainToolbar" />
           </toggleGroup>
         </ToggleButton>
         <ToggleButton fx:id="drawToolButton" mnemonicParsing="false" onAction="#setActionDrawing" selected="false" text="Draw" toggleGroup="$mainToolbar" underline="false" />
-        <ToggleButton mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
-        <ToggleButton mnemonicParsing="false" onAction="#setActionErase" text="Eraser" toggleGroup="$mainToolbar" />
+        <ToggleButton fx:id="rulerToolButton" mnemonicParsing="false" onAction="#setActionRuler" text="Ruler" toggleGroup="$mainToolbar" />
+        <ToggleButton fx:id="eraserToolButton" mnemonicParsing="false" onAction="#setActionErase" text="Eraser" toggleGroup="$mainToolbar" />
         <ToggleButton fx:id="secondLayerTglBtn" mnemonicParsing="false" text="Second Layer" />
         <ToggleButton fx:id="characterVisibilityButton" blendMode="SRC_OVER" mnemonicParsing="false" onAction="#toggleCharacterVisibility" selected="false" text="Characters Visibility" />
       </items>
