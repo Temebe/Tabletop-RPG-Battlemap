@@ -29,6 +29,13 @@
             <MenuItem mnemonicParsing="false" text="Quit" />
           </items>
         </Menu>
+        <Menu mnemonicParsing="false" text="View">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#changeTabPaneVisibility" text="Hide left pane" fx:id="tabPaneVisibilityItem" />
+            <MenuItem mnemonicParsing="false" onAction="#changeToolbarVisibility" text="Hide toolbar" fx:id="toolbarVisibilityItem" />
+            <MenuItem mnemonicParsing="false" onAction="#centerMapView" text="Center map view" />
+          </items>
+        </Menu>
         <Menu mnemonicParsing="false" text="Edit">
           <items>
             <MenuItem mnemonicParsing="false" onAction="#undo" text="Undo" fx:id="undoBtn" />
@@ -56,7 +63,7 @@
         </Menu>
       </menus>
     </MenuBar>
-    <ToolBar>
+    <ToolBar fx:id="toolbar">
       <items>
         <ToggleButton mnemonicParsing="false" onAction="#setActionStandard" text="Standard" underline="false">
           <toggleGroup>
@@ -72,7 +79,7 @@
     </ToolBar>
     <SplitPane fx:id="splitPane" blendMode="SRC_OVER" disable="false" dividerPositions="0.39420935412026725" focusTraversable="true" onDragOver="#updatePackagesLayout" prefHeight="-1.0" prefWidth="-1.0" visible="true" VBox.vgrow="ALWAYS">
       <items>
-        <TabPane prefHeight="508.0" prefWidth="231.0" tabClosingPolicy="UNAVAILABLE">
+        <TabPane fx:id="tabPane" prefHeight="508.0" prefWidth="231.0" tabClosingPolicy="UNAVAILABLE">
           <tabs>
             <Tab closable="false" text="TILES">
               <content>

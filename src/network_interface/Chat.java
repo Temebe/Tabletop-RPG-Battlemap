@@ -22,7 +22,6 @@ public class Chat {
     private BattlemapController controller;
     private TextField chatField;
     private int PID;
-    private int lastPMPID = -1;
     // height position of last
     private double lastHeight = 15;
     // information whether bar was scrolled when
@@ -57,6 +56,11 @@ public class Chat {
                 if(historyIterator.hasNext()) {
                     historyIterator = chatHistory.listIterator(chatHistory.size());
                 }
+            }
+        });
+        chatBox.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if(isScrolled()) {
+                this.scrollPane.setVvalue(this.scrollPane.getVmax());
             }
         });
     }
@@ -157,7 +161,7 @@ public class Chat {
         return text;
     }
 
-    public boolean isScrolled() {
+    private boolean isScrolled() {
         return scrolled;
     }
 

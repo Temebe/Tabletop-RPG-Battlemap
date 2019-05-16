@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -15,10 +14,12 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Region;
 import javafx.scene.paint.Paint;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import main.*;
+import main.CharacterSquare;
+import main.MapSquare;
 import network_interface.*;
 import org.apache.log4j.Logger;
 import shapes.Arrow;
@@ -36,10 +37,10 @@ import java.util.HashMap;
 public class BattlemapController {
 
     private static final Logger log = Logger.getLogger(BattlemapController.class);
-    static final int tilesGap = 10;
+    private static final int tilesGap = 10;
     public static final int tileSize = 50;
     static final int tileStartingPosY = 30;
-    int maxInRow;
+    private int maxInRow;
     private boolean packageChosen = false;
     private MapSquare[][] firstLayer;
     private MapSquare[][] secondLayer;
@@ -57,6 +58,8 @@ public class BattlemapController {
     private boolean changedMap = false;
     private boolean secondLayerVisible = true;
     private boolean characterTileChosen = false;
+    private boolean tabPaneVisible = true;
+    private boolean toolbarVisible = true;
     private File saveLocation = null;
     private Stage stage;
     private final KeyCombination undoComb =
@@ -72,10 +75,9 @@ public class BattlemapController {
     // Variable which remembers where arrow started
     private MapSquare arrowBegin = null;
     private MapSquare arrowEnd = null;
-    private Calendar cal = Calendar.getInstance();
-    private SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    private DragDelta cameraDragDelta = new DragDelta();
     private int freeCid = 0;
-    Chat chat;
+    private Chat chat;
 
     // Client side
     private ClientSideSocket client = null;
@@ -86,141 +88,6 @@ public class BattlemapController {
     private ArrayList<Player> playersList;
     private ObservableList<String> observablePlayersList;
     private int freePID = 0; // PID that haven't been granted yet
-
-    public enum packageType { characters, tiles }
-
-    public void undo() { history.undo(); }
-
-    public void redo() { history.redo(); }
-
-    public void setActionDrawing() {
-        currentAction = action.paintTile;
-        secondLayerVisible = secondLayerTglBtn.isSelected();
-        disableLayers(secondLayerVisible, !secondLayerVisible);
-    }
-
-    public void setActionRuler() {
-        currentAction = action.ruler;
-        disableLayers(false, false);
-    }
-
-    public void setActionStandard() {
-        currentAction = action.standard;
-        disableLayers(false, false);
-    }
-
-    public void setActionErase() {
-        currentAction = action.erase;
-    }
-
-    // This method is for actions that needs to be made at the very beginning of stage's presence
-    public void setUpStage() {
-        if(log.isDebugEnabled()) log.debug("Setting stage up");
-        // UNDO
-        stage.getScene().getAccelerators().put(undoComb,
-                this::undo);
-        // REDO
-        stage.getScene().getAccelerators().put(redoComb,
-                this::redo);
-        // SAVE MAP
-        stage.getScene().getAccelerators().put(saveComb,
-                this::saveMap);
-        // NEW MAP
-        stage.getScene().getAccelerators().put(newMapComb,
-                this::popUpNewMapSettings);
-    }
-
-    public enum action {
-        standard,
-        paintTile,
-        ruler,
-        erase,
-    }
-
-    class History {
-        public static final int historyCap = 50;
-        private action[] historyTable = new action[historyCap];
-        private String[] arguments = new String[historyCap];
-        private int actualPos;
-        private int newPos = 0;
-        private int size = 0;
-        // amount of performed "undo" operations (important for possible redo)
-        private int undos = 0;
-
-        public void append(action action, String arguments) {
-            //Prevent clients from using history
-            if(isClient() != isServer()) {
-                return;
-            }
-            if(client != null)
-            //Prevent from multiplying same action
-            if(historyTable[actualPos] == action && this.arguments[actualPos].equals(arguments))
-                return;
-            historyTable[newPos] = action;
-            this.arguments[newPos] = arguments;
-            actualPos = newPos;
-            newPos = (newPos + 1)%historyCap;
-            if(size != historyCap)
-                size++;
-            undos = 0;
-            changedMap = true;
-            updateTitle();
-            if(log.isDebugEnabled())
-                log.debug(arguments + '\n' + "size: " + size);
-        }
-
-        public void undo() {
-            if(size == 0)
-                return;
-            String[] arguments = this.arguments[actualPos].split(";");
-            doAction(actualPos, arguments);
-            undos++;
-            size--;
-            // Java's % operator doesn't work since it returns negative values, here's small workaround
-            actualPos = actualPos == 0 ? historyCap - 1 : actualPos - 1;
-            newPos = newPos == 0 ? historyCap - 1 : newPos - 1;
-            if(log.isDebugEnabled())
-                log.debug(Arrays.toString(arguments) + '\n'
-                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
-        }
-
-        public void redo() {
-            if(undos == 0)
-                return;
-            String[] arguments = this.arguments[newPos].split(";");
-            doAction(newPos, arguments);
-            undos--;
-            size++;
-            actualPos = (actualPos + 1)%historyCap;
-            newPos = (newPos + 1)%historyCap;
-            if(log.isDebugEnabled())
-                log.debug(Arrays.toString(arguments) + '\n'
-                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
-        }
-
-        private void doAction(int actionPos, String[] arguments) {
-            switch(historyTable[actionPos]) {
-                case paintTile:
-                    int posX = Integer.parseInt(arguments[0]);
-                    int posY = Integer.parseInt(arguments[1]);
-                    int layer = Integer.parseInt(arguments[3]);
-                    MapSquare square = layer == 1 ? firstLayer[posY][posX] : secondLayer[posY][posX];
-                    //We're changing argument for possible undo/redo
-                    this.arguments[actionPos] =
-                            posX + ";"
-                            + posY + ";"
-                            + firstLayer[posY][posX].getImagePath() + ";"
-                            + layer;
-                    square.setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
-                    break;
-            }
-        }
-    }
-
-    class DragDelta {
-        public double x;
-        public double y;
-    }
 
     private History history = new History();
 
@@ -240,10 +107,10 @@ public class BattlemapController {
     private AnchorPane mapView;
 
     @FXML
-    private ChoiceBox tilesPgChoiceBox;
+    private ChoiceBox<String> tilesPgChoiceBox;
 
     @FXML
-    public ChoiceBox charactersPgChoiceBox;
+    public ChoiceBox<String> charactersPgChoiceBox;
 
     @FXML
     public MenuItem undoBtn;
@@ -276,66 +143,220 @@ public class BattlemapController {
     public AnchorPane chatBox;
 
     @FXML
-    public ListView playersListView;
+    public ListView<String> playersListView;
+
+    @FXML
+    public TabPane tabPane;
+
+    @FXML
+    public ToolBar toolbar;
+
+    @FXML
+    public MenuItem toolbarVisibilityItem;
+
+    @FXML
+    public MenuItem tabPaneVisibilityItem;
+
+    public enum packageType { characters, tiles }
+
+    public enum action {
+        standard,
+        paintTile,
+        ruler,
+        erase,
+    }
+
+    class History {
+        private static final int historyCap = 50;
+        private action[] historyTable = new action[historyCap];
+        private String[] arguments = new String[historyCap];
+        private int actualPos;
+        private int newPos = 0;
+        private int size = 0;
+        // amount of performed "undo" operations (important for possible redo)
+        private int undos = 0;
+
+        void append(action action, String arguments) {
+            //Prevent clients from using history
+            if(isClient() != isServer()) {
+                return;
+            }
+            if(client != null)
+            //Prevent from multiplying same action
+            if(historyTable[actualPos] == action && this.arguments[actualPos].equals(arguments))
+                return;
+            historyTable[newPos] = action;
+            this.arguments[newPos] = arguments;
+            actualPos = newPos;
+            newPos = (newPos + 1)%historyCap;
+            if(size != historyCap)
+                size++;
+            undos = 0;
+            changedMap = true;
+            updateTitle();
+            if(log.isDebugEnabled())
+                log.debug(arguments + '\n' + "size: " + size);
+        }
+
+        void undo() {
+            if(size == 0)
+                return;
+            String[] arguments = this.arguments[actualPos].split(";");
+            doAction(actualPos, arguments);
+            undos++;
+            size--;
+            // Java's % operator doesn't work since it returns negative values, here's small workaround
+            actualPos = actualPos == 0 ? historyCap - 1 : actualPos - 1;
+            newPos = newPos == 0 ? historyCap - 1 : newPos - 1;
+            if(log.isDebugEnabled())
+                log.debug(Arrays.toString(arguments) + '\n'
+                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
+        }
+
+        void redo() {
+            if(undos == 0)
+                return;
+            String[] arguments = this.arguments[newPos].split(";");
+            doAction(newPos, arguments);
+            undos--;
+            size++;
+            actualPos = (actualPos + 1)%historyCap;
+            newPos = (newPos + 1)%historyCap;
+            if(log.isDebugEnabled())
+                log.debug(Arrays.toString(arguments) + '\n'
+                        + "size: " + size + "\nactual pos: " + actualPos + "\nundos: " + undos);
+        }
+
+        private void doAction(int actionPos, String[] arguments) {
+            switch(historyTable[actionPos]) {
+                case paintTile:
+                    int posX = Integer.parseInt(arguments[0]);
+                    int posY = Integer.parseInt(arguments[1]);
+                    int layer = Integer.parseInt(arguments[3]);
+                    MapSquare square = layer == 1 ? firstLayer[posY][posX] : secondLayer[posY][posX];
+                    //We're changing argument for possible undo/redo
+                    this.arguments[actionPos] =
+                            posX + ";"
+                            + posY + ";"
+                            + firstLayer[posY][posX].getImagePath() + ";"
+                            + layer;
+                    square.setGraphic(new ImageView(cachedImages.get(arguments[2])), arguments[2]);
+                    break;
+            }
+        }
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    class DragDelta {
+        public double x = 0;
+        public double y = 0;
+
+        public void reset() {
+            x = 0;
+            y = 0;
+        }
+    }
+
+    public void undo() { history.undo(); }
+
+    public void redo() { history.redo(); }
+
+    public void setActionDrawing() {
+        currentAction = action.paintTile;
+        secondLayerVisible = secondLayerTglBtn.isSelected();
+        disableLayers(secondLayerVisible, !secondLayerVisible);
+    }
+
+    public void setActionRuler() {
+        currentAction = action.ruler;
+        disableLayers(false, false);
+    }
+
+    public void setActionStandard() {
+        currentAction = action.standard;
+        disableLayers(false, false);
+    }
+
+    public void setActionErase() {
+        currentAction = action.erase;
+    }
+
+    @FXML
+    public void changeTabPaneVisibility() {
+        if(tabPaneVisible) {
+            tabPaneVisible = false;
+            tabPane.setMaxWidth(0);
+            splitPane.setDividerPosition(0, 0);
+            splitPane.setMouseTransparent(true);
+            tabPaneVisibilityItem.setText("Show left pane");
+        } else {
+            tabPaneVisible = true;
+            tabPane.setMaxWidth(Region.USE_COMPUTED_SIZE);
+            splitPane.setDividerPosition(0, 0.3942);
+            splitPane.setMouseTransparent(false);
+            tabPaneVisibilityItem.setText("Hide left pane");
+        }
+    }
+
+    @FXML
+    public void changeToolbarVisibility() {
+        if(toolbarVisible) {
+            toolbarVisible = false;
+            toolbar.setMaxHeight(0);
+            log.debug(toolbar.getHeight());
+            toolbarVisibilityItem.setText("Show toolbar");
+        } else {
+            toolbarVisible = true;
+            toolbar.setMaxHeight(Region.USE_COMPUTED_SIZE);
+            log.debug(toolbar.getHeight());
+            toolbarVisibilityItem.setText("Hide toolbar");
+        }
+    }
+
+    @FXML
+    public void centerMapView() {
+        mapView.setTranslateX(0);
+        mapView.setTranslateY(0);
+    }
+
+    // This method is for actions that needs to be made at the very beginning of stage's presence
+    public void setUpStage() {
+        if(log.isDebugEnabled()) log.debug("Setting stage up");
+        // UNDO
+        stage.getScene().getAccelerators().put(undoComb,
+                this::undo);
+        // REDO
+        stage.getScene().getAccelerators().put(redoComb,
+                this::redo);
+        // SAVE MAP
+        stage.getScene().getAccelerators().put(saveComb,
+                this::saveMap);
+        // NEW MAP
+        stage.getScene().getAccelerators().put(newMapComb,
+                this::popUpNewMapSettings);
+    }
 
     @FXML
     public void initialize() {
-        tilesPgChoiceBox.getSelectionModel()
-            .selectedItemProperty()
-            .addListener((observableValue, o, t1) -> { changePackage(packageType.tiles); });
-        charactersPgChoiceBox.getSelectionModel()
-                .selectedItemProperty()
-                .addListener((observableValue, o, t1) -> { changePackage(packageType.characters); });
+        setChoiceBoxesUp();
         // Check whether there are packages to be loaded at the beginning
         updatePackages();
         // This listener allows tiles to move with divider
-        splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
-            if((double)newVal < (double)oldVal) {
-                updatePackagesLayout(1);
-                return;
-            }
-            if(!packageChosen)
-                return;
-            if (maxInRow < (int) tilesChooseView.getWidth() / (tileSize + tilesGap)) {
-                updatePackagesLayout();
-            }
-        });
-        // Set default tool to start with
+        setSplitPaneUp();
+        // Set default tool and layer to start with
         drawToolButton.setSelected(true);
         currentAction = action.paintTile;
         secondLayerVisible = secondLayerTglBtn.isSelected();
         disableLayers(secondLayerVisible, !secondLayerVisible);
-        // Set few default squares to memory
-        Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"),
-                tileSize, tileSize, false, false);
-        cachedImages.put("/images/defaultSquare.png", defaultSquare);
-        Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"),
-                tileSize, tileSize, false, false);
-        cachedImages.put("/images/missingSquare.png", missingSquare);
-        Image transparent = new Image(getClass().getResourceAsStream("/images/transparent.png"),
-                tileSize, tileSize, false, false);
-        cachedImages.put("/images/transparent.png", transparent);
+        // Load few default squares to memory
+        loadDefaultImages();
         secondLayerTglBtn.setOnAction(actionEvent -> {
             secondLayerVisible = secondLayerTglBtn.isSelected();
             disableLayers(secondLayerVisible, !secondLayerVisible);
         });
         characterVisibilityButton.setSelected(true);
-        //TODO Add camera drag to mapView
-//        DragDelta dragDelta = new DragDelta();
-//        mapView.setOnMousePressed(mouseEvent -> {
-//            dragDelta.x = mapView.getLayoutX() - mouseEvent.getScreenX();
-//            dragDelta.y = mapView.getLayoutY() - mouseEvent.getScreenY();
-//        });
-//        mapView.setOnMouseDragged(mouseEvent -> {
-//            mapView.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
-//            mapView.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
-//        });
+        addCameraHandling();
         chat = new Chat(chatBox, chatBoxScrollPane, chatField,this, 0);
-        chatBox.heightProperty().addListener((obs, oldVal, newVal) -> {
-            if(chat.isScrolled()) {
-                chatBoxScrollPane.setVvalue(chatBoxScrollPane.getVmax());
-            }
-        });
     }
 
     void setStage(Stage stage) { this.stage = stage; }
@@ -361,11 +382,55 @@ public class BattlemapController {
         setPlayersListViewUp();
     }
 
-    void setPlayersListViewUp() {
+    private void setChoiceBoxesUp() {
+        tilesPgChoiceBox.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((observableValue, o, t1) -> { changePackage(packageType.tiles); });
+        charactersPgChoiceBox.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((observableValue, o, t1) -> { changePackage(packageType.characters); });
+    }
+
+    private void setSplitPaneUp() {
+        splitPane.getDividers().get(0).positionProperty().addListener((obs, oldVal, newVal) -> {
+            if((double)newVal < (double)oldVal) {
+                updatePackagesLayout(1);
+                return;
+            }
+            if(!packageChosen)
+                return;
+            if (maxInRow < (int) tilesChooseView.getWidth() / (tileSize + tilesGap)) {
+                updatePackagesLayout();
+            }
+        });
+    }
+
+    private void loadDefaultImages() {
+        Image defaultSquare = new Image(getClass().getResourceAsStream("/images/defaultSquare.png"),
+                tileSize, tileSize, false, false);
+        cachedImages.put("/images/defaultSquare.png", defaultSquare);
+        Image missingSquare = new Image(getClass().getResourceAsStream("/images/missingSquare.png"),
+                tileSize, tileSize, false, false);
+        cachedImages.put("/images/missingSquare.png", missingSquare);
+        Image transparent = new Image(getClass().getResourceAsStream("/images/transparent.png"),
+                tileSize, tileSize, false, false);
+        cachedImages.put("/images/transparent.png", transparent);
+    }
+
+    private void addCameraHandling() {
+        mapView.setOnMousePressed(mouseEvent -> {
+            cameraDragDelta.x = mapView.getTranslateX() - mouseEvent.getScreenX();
+            cameraDragDelta.y = mapView.getTranslateY() - mouseEvent.getScreenY();
+        });
+        mapView.setOnDragEntered(mouseDragEvent -> mapView.startFullDrag());
+        mapView.setOnMouseDragged(mouseEvent -> moveCamera(mouseEvent, cameraDragDelta));
+    }
+
+    private void setPlayersListViewUp() {
         playersListView.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getButton().equals(MouseButton.SECONDARY)
                     || (mouseEvent.getButton().equals(MouseButton.PRIMARY) && mouseEvent.getClickCount() == 2)) {
-                String nickname = (String)playersListView.getSelectionModel().getSelectedItem();
+                String nickname = playersListView.getSelectionModel().getSelectedItem();
                 if(nickname != null) {
                     log.debug(nickname);
                 }
@@ -659,8 +724,8 @@ public class BattlemapController {
             }
         });
         mapSquare.setOnMousePressed(mouseEvent -> {
-            dragDelta.x = mapSquare.getLayoutX() - mouseEvent.getScreenX();
-            dragDelta.y = mapSquare.getLayoutY() - mouseEvent.getScreenY();
+            dragDelta.x = mapView.getTranslateX() - mouseEvent.getScreenX();
+            dragDelta.y = mapView.getTranslateY() - mouseEvent.getScreenY();
         });
         mapSquare.setOnMouseDragged(mouseEvent -> {
             if(mouseEvent.isSecondaryButtonDown()) moveCamera(mouseEvent, dragDelta);
@@ -741,7 +806,6 @@ public class BattlemapController {
             client.requestNewCharacter((int)mapSquare.getPosX(), (int)mapSquare.getPosY(), currentCharacterPath);
             return;
         }
-        log.debug("wtfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         ImageView imageView = new ImageView(cachedImages.get(currentCharacterPath));
         int width = (int)imageView.getImage().getWidth()%tileSize;
         int height = (int)imageView.getImage().getHeight()%tileSize;
@@ -794,21 +858,15 @@ public class BattlemapController {
         });
 
         characterSquare.setOnMousePressed(mouseEvent -> {
-            dragDelta.x = characterSquare.getLayoutX() - mouseEvent.getScreenX();
-            dragDelta.y = characterSquare.getLayoutY() - mouseEvent.getScreenY();
+            dragDelta.x = characterSquare.getTranslateX() - mouseEvent.getScreenX();
+            dragDelta.y = characterSquare.getTranslateY() - mouseEvent.getScreenY();
         });
-        characterSquare.setOnDragDetected(mouseEvent -> {
-            characterSquare.startFullDrag();
-        });
+        characterSquare.setOnDragDetected(mouseEvent -> characterSquare.startFullDrag());
         characterSquare.setOnMouseDragged(mouseEvent -> {
             characterSquare.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
             characterSquare.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
         });
-        characterSquare.setOnMouseDragReleased(mouseDragEvent -> {
-            moveCharacter(characterSquare);
-            dragDelta.x = 0;
-            dragDelta.y = 0;
-        });
+        characterSquare.setOnMouseDragReleased(mouseDragEvent -> moveCharacter(characterSquare));
     }
 
     private void moveCharacter(CharacterSquare character) {
@@ -999,13 +1057,12 @@ public class BattlemapController {
         log.debug("Move!" + endX + " " + endY);
     }
 
-    public void moveCamera(MouseEvent mouseEvent, DragDelta dragDelta) {
-        if(!mouseEvent.isSecondaryButtonDown()) return;
+    private void moveCamera(MouseEvent mouseEvent, DragDelta dragDelta) {
         mapView.setTranslateX(mouseEvent.getScreenX() + dragDelta.x);
         mapView.setTranslateY(mouseEvent.getScreenY() + dragDelta.y);
     }
 
-    public void popUpCharacterSettings(CharacterSquare character) {
+    private void popUpCharacterSettings(CharacterSquare character) {
         String name = character.getName().equals("") ? "Unnamed character" : character.getName();
         CharacterSettingsController controller =
                 (CharacterSettingsController) popUpNewWindow("characterSettings.fxml", name);
