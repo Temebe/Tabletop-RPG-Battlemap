@@ -7,9 +7,11 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane fx:id="createMapDialogue" prefHeight="130.0" prefWidth="299.9998779296875" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.ErrorPopUpController">
+<AnchorPane fx:id="createMapDialogue" prefHeight="130.0" prefWidth="299.9998779296875" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.KickController">
   <children>
-    <Button fx:id="okButton" defaultButton="true" layoutX="126.0" layoutY="89.0" mnemonicParsing="false" onAction="#cancel" text="OK" />
-    <Text fx:id="errorText" layoutX="13.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" wrappingWidth="270.0" />
+    <Button id="okButton" fx:id="kickButton" defaultButton="true" layoutX="76.0" layoutY="89.0" mnemonicParsing="false" onAction="#kick" text="Kick" />
+    <Button id="okButton" defaultButton="false" layoutX="150.0" layoutY="89.0" mnemonicParsing="false" onAction="#cancel" text="Cancel" />
+    <Text fx:id="errorText" layoutX="13.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Reason for kick:" wrappingWidth="270.0" />
+    <TextField fx:id="reasonField" layoutX="13.0" layoutY="39.0" prefWidth="270.0" />
   </children>
 </AnchorPane>

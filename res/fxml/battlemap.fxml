@@ -17,20 +17,29 @@
           <items>
             <MenuItem mnemonicParsing="false" onAction="#popUpNewMapSettings" text="New" />
             <MenuItem mnemonicParsing="false" onAction="#loadMap" text="Open..." />
-            <Menu mnemonicParsing="false" text="Open Recent" />
             <SeparatorMenuItem mnemonicParsing="false" />
             <MenuItem mnemonicParsing="false" onAction="#closeMap" text="Close" />
             <MenuItem mnemonicParsing="false" onAction="#saveMap" text="Save" />
             <MenuItem mnemonicParsing="false" onAction="#saveMapAs" text="Save As…" />
-            <MenuItem mnemonicParsing="false" text="Revert" />
-            <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Preferences…" />
             <SeparatorMenuItem mnemonicParsing="false" />
             <MenuItem mnemonicParsing="false" text="Quit" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="View">
           <items>
+            <Menu mnemonicParsing="false" text="Set chat font size">
+              <items>
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="8" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="9" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="10" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="11" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="12" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="13" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="14" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="15" />
+                <MenuItem mnemonicParsing="false" onAction="#changeChatFontSize" text="16" />
+              </items>
+            </Menu>
             <MenuItem mnemonicParsing="false" onAction="#changeTabPaneVisibility" text="Hide left pane" fx:id="tabPaneVisibilityItem" />
             <MenuItem mnemonicParsing="false" onAction="#changeToolbarVisibility" text="Hide toolbar" fx:id="toolbarVisibilityItem" />
             <MenuItem mnemonicParsing="false" onAction="#centerMapView" text="Center map view" />

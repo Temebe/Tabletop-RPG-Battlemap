@@ -1,6 +1,7 @@
 package network_interface;
 
 import controllers.BattlemapController;
+import javafx.application.Platform;
 import org.apache.log4j.Logger;
 
 import java.io.*;
@@ -32,6 +33,7 @@ public class ServerSideSocket extends Thread {
     private InputStream in = null;
     private OutputStream out = null;
     BattlemapController controller;
+    private String nickname = "";
     private static final Logger log = Logger.getLogger(ServerSideSocket.class);
 
     public ServerSideSocket(int port, Socket socket, BattlemapController controller) {
@@ -79,7 +81,7 @@ public class ServerSideSocket extends Thread {
         } catch (IOException e) {
             log.error("Lost connection with player");
         } finally {
-            controller.logOutPlayer(this);
+            Platform.runLater(() -> controller.logOutPlayer(this));
             try {
                 in.close();
                 out.close();
@@ -181,6 +183,7 @@ public class ServerSideSocket extends Thread {
 
     public void sendPID(int PID, String nickname) {
         String msg = "LOGGED:" + PID + ":" + nickname + '\n';
+        this.nickname = nickname;
         try {
             out.write(msg.getBytes());
         } catch (IOException e) {
@@ -301,6 +304,8 @@ public class ServerSideSocket extends Thread {
     }
 
     public void kick(String reason) {
+        if(reason.trim().isEmpty())
+            reason = "No reason was given";
         sendChatMessage("You were kicked from server: " + reason, "error");
         controller.logOutPlayer(this);
         try {
@@ -308,5 +313,6 @@ public class ServerSideSocket extends Thread {
             out.close();
             socket.close();
         } catch (IOException ignored) { }
+        controller.broadcastChatMessage(nickname + " was kicked from server", "error");
     }
 }

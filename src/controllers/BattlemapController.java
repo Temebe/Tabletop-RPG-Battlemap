@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -86,6 +87,8 @@ public class BattlemapController {
     private ArrayList<Player> playersList;
     private ObservableList<String> observablePlayersList;
     private int freePID = 0; // PID that haven't been granted yet
+    private ContextMenu contextMenu;
+    private String selectedPlayer = null;
 
     private History history = new History();
 
@@ -272,20 +275,30 @@ public class BattlemapController {
         currentAction = action.paintTile;
         secondLayerVisible = secondLayerTglBtn.isSelected();
         disableLayers(secondLayerVisible, !secondLayerVisible);
+        setCharactersMouseTransparent(true);
     }
 
     public void setActionRuler() {
         currentAction = action.ruler;
         disableLayers(false, false);
+        setCharactersMouseTransparent(true);
     }
 
     public void setActionStandard() {
         currentAction = action.standard;
         disableLayers(false, false);
+        setCharactersMouseTransparent(false);
+    }
+
+    public void changeChatFontSize(ActionEvent actionEvent) {
+        MenuItem chosenOption = (MenuItem)actionEvent.getSource();
+        int size = Integer.parseInt(chosenOption.getText());
+        chat.setFontSize(size);
     }
 
     public void setActionErase() {
         currentAction = action.erase;
+        setCharactersMouseTransparent(false);
     }
 
     @FXML
@@ -444,15 +457,28 @@ public class BattlemapController {
     }
 
     private void setPlayersListViewUp() {
-        playersListView.setOnMouseClicked(mouseEvent -> {
-            if(mouseEvent.getButton().equals(MouseButton.SECONDARY)
-                    || (mouseEvent.getButton().equals(MouseButton.PRIMARY) && mouseEvent.getClickCount() == 2)) {
-                String nickname = playersListView.getSelectionModel().getSelectedItem();
-                if(nickname != null) {
-                    log.debug(nickname);
-                }
-            }
+        setContextMenuUp();
+        playersListView.setOnContextMenuRequested(contextMenuEvent -> {
+            selectedPlayer = playersListView.getSelectionModel().getSelectedItem();
+            log.debug("Selected " + selectedPlayer);
+            contextMenu.show(playersListView, contextMenuEvent.getScreenX(), contextMenuEvent.getScreenY());
         });
+    }
+
+    private void setContextMenuUp() {
+        contextMenu = new ContextMenu();
+        MenuItem kickItem = new MenuItem("Kick");
+        kickItem.setOnAction(actionEvent -> {
+            KickController controller = (KickController)popUpNewWindow("kickPopUp.fxml",
+                    "Kick player " + selectedPlayer);
+            controller.setParent(this);
+            controller.setNickname(selectedPlayer);
+        });
+        MenuItem banItem = new MenuItem("Ban");
+        banItem.setOnAction(actionEvent -> log.debug("Ban " + selectedPlayer));
+        MenuItem pmItem = new MenuItem("Send private message");
+        pmItem.setOnAction(actionEvent -> log.debug("Private message " + selectedPlayer));
+        contextMenu.getItems().addAll(kickItem, banItem, pmItem);
     }
 
     // TODO set maximum nick size? or sth
@@ -764,9 +790,11 @@ public class BattlemapController {
             }
         });
         mapSquare.setOnMouseDragReleased(mouseDragEvent -> {
-            arrowBegin = null;
-            arrowEnd = null;
-            mapView.getChildren().remove(arrow);
+            if(arrowBegin != null) {
+                arrowBegin = null;
+                arrowEnd = null;
+                mapView.getChildren().remove(arrow);
+            }
         });
         return mapSquare;
     }
@@ -815,6 +843,12 @@ public class BattlemapController {
         if((posX > mapWidth) || (posY > mapHeight))
             return;
         setMapSquareGraphic(posY, posX, firstLayer[posY][posX]);
+    }
+
+    private void setCharactersMouseTransparent(boolean value) {
+        for(CharacterSquare character : charactersList) {
+            character.setMouseTransparent(value);
+        }
     }
 
     // TODO propably posX and posY in character Square are obsolite
