@@ -16,7 +16,7 @@ public class KickController extends PopUpController {
 
     private String nickname = null;
 
-    public void setNickname(String nickname) {
+    void setNickname(String nickname) {
         this.nickname = nickname;
     }
 

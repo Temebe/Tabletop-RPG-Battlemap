@@ -27,7 +27,6 @@ import shapes.Arrow;
 import shapes.StatusBar;
 
 import java.io.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 //TODO Get rid of useless event parameters
@@ -89,6 +88,8 @@ public class BattlemapController {
     private int freePID = 0; // PID that haven't been granted yet
     private ContextMenu contextMenu;
     private String selectedPlayer = null;
+    private ArrayList<PlayerGroup> playerGroups;
+    private String password;
 
     private History history = new History();
 
@@ -405,6 +406,7 @@ public class BattlemapController {
         observablePlayersList = FXCollections.observableArrayList();
         playersListView.setItems(observablePlayersList);
         setPlayersListViewUp();
+        setPlayerGroupsUp();
     }
 
     private void setChoiceBoxesUp() {
@@ -465,6 +467,20 @@ public class BattlemapController {
         });
     }
 
+    private void setPlayerGroupsUp() {
+        PlayerGroup gameMasterGroup = new PlayerGroup(0, "Game masters");
+        PlayerGroup playerGroup = new PlayerGroup(1, "Players");
+        gameMasterGroup.setPermission(PlayerGroup.drawingPerm, true);
+        gameMasterGroup.setPermission(PlayerGroup.deletingPerm, true);
+        gameMasterGroup.setPermission(PlayerGroup.creatingPerm, true);
+        gameMasterGroup.setPermission(PlayerGroup.editingPerm, true);
+        gameMasterGroup.setPermission(PlayerGroup.movingPerm, true);
+        playerGroup.setPermission(PlayerGroup.movingPerm, true);
+        playerGroups = new ArrayList<>();
+        playerGroups.add(gameMasterGroup);
+        playerGroups.add(playerGroup);
+    }
+
     private void setContextMenuUp() {
         contextMenu = new ContextMenu();
         MenuItem kickItem = new MenuItem("Kick");
@@ -478,7 +494,14 @@ public class BattlemapController {
         banItem.setOnAction(actionEvent -> log.debug("Ban " + selectedPlayer));
         MenuItem pmItem = new MenuItem("Send private message");
         pmItem.setOnAction(actionEvent -> log.debug("Private message " + selectedPlayer));
-        contextMenu.getItems().addAll(kickItem, banItem, pmItem);
+        MenuItem changeGroupItem = new MenuItem("Change player's group");
+        changeGroupItem.setOnAction(actionEvent -> {
+            ChangeGroupController controller = (ChangeGroupController)popUpNewWindow("changeGroup.fxml",
+                    "Change " + selectedPlayer + "'s group");
+            assert controller != null;
+            controller.setStartingParameters(getPlayer(selectedPlayer), playerGroups);
+        });
+        contextMenu.getItems().addAll(kickItem, banItem, pmItem, changeGroupItem);
     }
 
     // TODO set maximum nick size? or sth
@@ -597,6 +620,43 @@ public class BattlemapController {
             }
         }
         return null;
+    }
+
+    public PlayerGroup getPlayerGroup(int playerPID) {
+        return getPlayerGroup(getPlayer(playerPID));
+    }
+
+    public PlayerGroup getPlayerGroup(String nickname) {
+        return getPlayerGroup(getPlayer(nickname));
+    }
+
+    private PlayerGroup getPlayerGroup(Player player) {
+        if(player == null) {
+            return null;
+        }
+        int playerGroup = player.getPermissionGroup();
+        for(PlayerGroup group : playerGroups) {
+            if(group.getGroupId() == playerGroup) {
+                return group;
+            }
+        }
+        return null;
+    }
+
+    public ArrayList<PlayerGroup> getPlayerGroups() {
+        return playerGroups;
+    }
+
+    public boolean passwordMatches(String password) {
+        return this.password.equals(password);
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void changePassword(String newPassword) {
+        this.password = newPassword;
     }
 
     public void broadcastCloseMap() {
@@ -1117,7 +1177,8 @@ public class BattlemapController {
         String name = character.getName().equals("") ? "Unnamed character" : character.getName();
         CharacterSettingsController controller =
                 (CharacterSettingsController) popUpNewWindow("characterSettings.fxml", name);
-        controller.setStartingValues(character);
+        Objects.requireNonNull(controller, "Unexpected error when loading window")
+                .setStartingValues(character);
     }
 
     public void popUpNewMapSettings() {
@@ -1126,6 +1187,19 @@ public class BattlemapController {
 
     public void loadZipPackageWindow() {
         popUpNewWindow("newZipPackageWindow.fxml");
+    }
+
+    public void popUpControlPanel() {
+        if(isServer()) {
+            ControlPanelController controller = (ControlPanelController)popUpNewWindow("controlPanel.fxml",
+                    "Control panel");
+            if(controller != null) {
+                controller.setParent(this);
+                controller.setPermissionGroups(playerGroups);
+            }
+        } else {
+            popUpError("You are not hosting any game!");
+        }
     }
 
     private PopUpController popUpNewWindow(String windowName) {
@@ -1140,10 +1214,16 @@ public class BattlemapController {
         try {
             root = fxmlLoader.load(getClass().getResource("/fxml/" + windowName).openStream());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Problem with loading window " + windowName + ", maybe corrupted fxml files?");
+        } catch (NullPointerException e) {
+            log.error("Couldn't find " + windowName + " file");
         }
         PopUpController controller = fxmlLoader.getController();
         controller.setParent(this);
+        // TODO try later assert
+        if(root == null) {
+            return null;
+        }
         newWindow.setScene(new Scene(root));
         newWindow.show();
         return controller;

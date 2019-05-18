@@ -22,7 +22,7 @@
             <MenuItem mnemonicParsing="false" onAction="#saveMap" text="Save" />
             <MenuItem mnemonicParsing="false" onAction="#saveMapAs" text="Save As…" />
             <SeparatorMenuItem mnemonicParsing="false" />
-            <MenuItem mnemonicParsing="false" text="Quit" />
+            <MenuItem mnemonicParsing="false" onAction="#popUpControlPanel" text="Control panel" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="View">

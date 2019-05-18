@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.collections.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane fx:id="createMapDialogue" prefHeight="300.0" prefWidth="300.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.ChangeGroupController">
+  <children>
+    <Button fx:id="okButton" defaultButton="true" layoutX="125.0" layoutY="244.0" mnemonicParsing="false" onAction="#accept" text="OK" />
+    <Text fx:id="errorText" layoutX="12.0" layoutY="65.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New group:" wrappingWidth="270.0" />
+    <ChoiceBox fx:id="groupsChoiceBox" layoutX="125.0" layoutY="45.0" prefWidth="157.0">
+      <items>
+        <FXCollections fx:factory="observableArrayList">
+          <String fx:value="Item 1" />
+          <String fx:value="Item 2" />
+          <String fx:value="Item 3" />
+        </FXCollections>
+      </items>
+    </ChoiceBox>
+    <Text layoutX="12.0" layoutY="41.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Actual group:" />
+    <Text fx:id="actualGroupText" layoutX="125.0" layoutY="41.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" />
+    <Text layoutX="12.0" layoutY="21.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Player:" />
+    <Text fx:id="playerInfoText" layoutX="125.0" layoutY="20.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" />
+    <Text layoutX="12.0" layoutY="99.0" strokeType="OUTSIDE" strokeWidth="0.0" text="This group can:" />
+    <Text layoutX="14.0" layoutY="129.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Draw tiles:" />
+    <Text layoutX="14.0" layoutY="149.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Delete characters:" />
+    <Text layoutX="14.0" layoutY="169.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Create characters:" />
+    <Text layoutX="14.0" layoutY="189.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Edit characters:" />
+    <Text layoutX="14.0" layoutY="209.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Move characters:" />
+    <Text fx:id="editingPermText" layoutX="229.0" layoutY="189.0" strokeType="OUTSIDE" strokeWidth="0.0" text="YES" />
+    <Text fx:id="movingPermText" layoutX="229.0" layoutY="209.0" strokeType="OUTSIDE" strokeWidth="0.0" text="YES" />
+    <Text fx:id="creatingPermText" layoutX="229.0" layoutY="169.0" strokeType="OUTSIDE" strokeWidth="0.0" text="YES" />
+    <Text fx:id="deletingPermText" layoutX="229.0" layoutY="149.0" strokeType="OUTSIDE" strokeWidth="0.0" text="YES" />
+    <Text fx:id="drawingPermText" layoutX="229.0" layoutY="129.0" strokeType="OUTSIDE" strokeWidth="0.0" text="YES" />
+  </children>
+</AnchorPane>

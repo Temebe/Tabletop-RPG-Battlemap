@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.ControlPanelController">
+  <children>
+    <TabPane layoutX="0.0" layoutY="0.0" prefHeight="400.0" prefWidth="600.0" tabClosingPolicy="UNAVAILABLE">
+      <tabs>
+        <Tab text="General">
+          <content>
+            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+              <children>
+                <Text layoutX="14.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Password:" />
+                <Button layoutX="80.0" layoutY="319.0" mnemonicParsing="false" onAction="#saveGeneral" text="Save settings" />
+                <PasswordField fx:id="passwordField" layoutX="93.0" layoutY="11.0" prefWidth="150.0" />
+                <Button layoutX="243.0" layoutY="320.0" mnemonicParsing="false" onAction="#cancel" text="Close without saving" />
+                <Text layoutX="272.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Note that this password is not stored in encrypted form. Don't use passwords that are somehow important for you!" wrappingWidth="320.0" />
+                <Text fx:id="generalInfoText" layoutX="418.0" layoutY="338.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" visible="false" />
+              </children>
+            </AnchorPane>
+          </content>
+        </Tab>
+        <Tab text="Groups and permissions">
+          <content>
+            <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+              <children>
+                <ListView fx:id="groupsListView" layoutX="14.0" layoutY="14.0" prefHeight="200.0" prefWidth="200.0" />
+                <Button layoutX="14.0" layoutY="214.0" mnemonicParsing="false" onAction="#createPermissionGroup" prefWidth="200.0" text="Add new group" />
+                <Text layoutX="259.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Group name:" />
+                <Text layoutX="259.0" layoutY="50.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Group ID:" />
+                <Text layoutX="259.0" layoutY="70.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Permissions:" />
+                <Text layoutX="259.0" layoutY="120.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Drawing:" />
+                <Text layoutX="259.0" layoutY="140.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Deleting characters:" />
+                <Text layoutX="259.0" layoutY="160.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Creating characters:" />
+                <Text layoutX="259.0" layoutY="180.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Editing characters:" />
+                <Text layoutX="259.0" layoutY="200.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Moving characters:" />
+                <RadioButton fx:id="yesDrawingBtn" layoutX="433.0" layoutY="104.0" mnemonicParsing="false" text="Yes">
+                  <toggleGroup>
+                    <ToggleGroup fx:id="drawing" />
+                  </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="noDrawingBtn" layoutX="507.0" layoutY="104.0" mnemonicParsing="false" text="No" toggleGroup="$drawing" />
+                <RadioButton fx:id="yesDeletingBtn" layoutX="433.0" layoutY="124.0" mnemonicParsing="false" text="Yes">
+                  <toggleGroup>
+                    <ToggleGroup fx:id="deleting" />
+                  </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="yesCreatingBtn" layoutX="433.0" layoutY="144.0" mnemonicParsing="false" text="Yes">
+                  <toggleGroup>
+                    <ToggleGroup fx:id="creating" />
+                  </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="yesEditingBtn" layoutX="433.0" layoutY="164.0" mnemonicParsing="false" text="Yes">
+                  <toggleGroup>
+                    <ToggleGroup fx:id="editing" />
+                  </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="yesMovingBtn" layoutX="433.0" layoutY="184.0" mnemonicParsing="false" text="Yes">
+                  <toggleGroup>
+                    <ToggleGroup fx:id="moving" />
+                  </toggleGroup>
+                </RadioButton>
+                <RadioButton fx:id="noDeletingBtn" layoutX="507.0" layoutY="124.0" mnemonicParsing="false" text="No" toggleGroup="$deleting" />
+                <RadioButton fx:id="noCreatingBtn" layoutX="507.0" layoutY="144.0" mnemonicParsing="false" text="No" toggleGroup="$creating" />
+                <RadioButton fx:id="noEditingBtn" layoutX="507.0" layoutY="164.0" mnemonicParsing="false" text="No" toggleGroup="$editing" />
+                <RadioButton fx:id="noMovingBtn" layoutX="507.0" layoutY="184.0" mnemonicParsing="false" text="No" toggleGroup="$moving" />
+                <Button layoutX="114.0" layoutY="302.0" mnemonicParsing="false" onAction="#saveGroups" text="Save groups" />
+                <Button layoutX="317.0" layoutY="303.0" mnemonicParsing="false" onAction="#cancel" text="Close without saving" />
+                <TextField fx:id="groupNameField" layoutX="380.0" layoutY="11.0" prefWidth="199.9998779296875" />
+                <Text fx:id="groupIdField" layoutX="381.0" layoutY="50.0" scaleX="1.1833786231884058" scaleY="1.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0" />
+                <Text fx:id="errorText" fill="RED" layoutX="259.0" layoutY="234.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" visible="false" />
+              </children>
+            </AnchorPane>
+          </content>
+        </Tab>
+      </tabs>
+    </TabPane>
+  </children>
+</AnchorPane>
