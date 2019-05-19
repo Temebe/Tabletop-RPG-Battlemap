@@ -1,6 +1,5 @@
 package controllers;
 
-import com.google.gson.Gson;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -29,14 +28,13 @@ import shapes.StatusBar;
 import java.io.*;
 import java.util.*;
 
-//TODO Get rid of useless event parameters
-//TODO Make two layers of firstLayer
 public class BattlemapController {
 
     private static final Logger log = Logger.getLogger(BattlemapController.class);
     private static final int tilesGap = 10;
     public static final int tileSize = 50;
-    static final int tileStartingPosY = 30;
+    //Extensions that Image class of javafx can handle
+    final private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
     private int maxInRow;
     private boolean packageChosen = false;
     private MapSquare[][] firstLayer;
@@ -47,8 +45,6 @@ public class BattlemapController {
     private HashMap<String, Image> cachedImages = new HashMap<>();
     private String currentTilePath = "/images/defaultSquare.png";
     private String currentCharacterPath = "/images/defaultSquare.png";
-    private String selectedPackage;
-    private Gson gson = new Gson();
     private int mapHeight;
     private int mapWidth;
     private boolean mapSet = false;
@@ -76,10 +72,10 @@ public class BattlemapController {
     private ArrayList<ToggleButton> toolbarButtons = new ArrayList<>();
     private int freeCid = 0;
     private Chat chat;
+    private History history = new History();
 
     // Client side
     private ClientSideSocket client = null;
-    private int PID;
 
     // Server side
     private Server server = null;
@@ -92,11 +88,6 @@ public class BattlemapController {
     private String password = "";
     //private ArrayList<String> bannedIps = new ArrayList<>();
     private ObservableList<String> bannedIps = FXCollections.observableArrayList();
-
-    private History history = new History();
-
-    //Extensions that Image class of javafx can handle
-    final private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
 
     @FXML
     public AnchorPane charactersChooseView;
@@ -566,7 +557,6 @@ public class BattlemapController {
     }
 
     public void setPID(int PID) {
-        this.PID = PID;
         chat.setPID(PID);
     }
 
@@ -941,7 +931,6 @@ public class BattlemapController {
         }
     }
 
-    // TODO propably posX and posY in character Square are obsolite
     private void putCharacterOnSquare(MapSquare mapSquare) {
         if(isConnected()) {
             client.requestNewCharacter((int)mapSquare.getPosX(), (int)mapSquare.getPosY(), currentCharacterPath);
