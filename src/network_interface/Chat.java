@@ -289,7 +289,10 @@ public class Chat {
         destination.setLastPMSender(sourcePID);
     }
 
-    private boolean isInteger(String string) {
+    static public boolean isInteger(String string) {
+        if(string.startsWith("0")) {
+            return false;
+        }
         for(char character : string.toCharArray()) {
             if(!Character.isDigit(character)) {
                 return false;
