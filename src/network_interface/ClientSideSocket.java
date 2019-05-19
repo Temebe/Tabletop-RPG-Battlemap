@@ -12,12 +12,18 @@ public class ClientSideSocket extends Thread{
     private int port;
     private String host;
     private BattlemapController controller;
-    Socket socket = null;
+    private Socket socket = null;
     private PrintWriter out = null;
     private BufferedReader in = null;
+    // I have absolute no idea how to handle this so I'm using booleans
+    private boolean accessDenied = false;
+    private boolean waitingForAcceptance = true;
+    private boolean unknownHost = false;
+    private boolean otherError = false;
+    private boolean banned = false;
     private static final Logger log = Logger.getLogger(ClientSideSocket.class);
 
-    public ClientSideSocket(String host, int port) {
+    public ClientSideSocket(String host, int port, String password) {
         this.port = port;
         this.host = host;
         try {
@@ -25,15 +31,16 @@ public class ClientSideSocket extends Thread{
             socket = new Socket(host, port);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            if(socket.isConnected())
-                System.out.println("Connected!");
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            unknownHost = true;
+            return;
         } catch (IOException e) {
-            e.printStackTrace();
+            otherError = true;
+            return;
         }
         setDaemon(true);
         start();
+        out.println("PWD:" + password);
     }
 
     public void run() {
@@ -42,6 +49,17 @@ public class ClientSideSocket extends Thread{
         try {
             while((input = in.readLine()) != null) {
                 data = input.split(":", 2);
+                if(data[0].equalsIgnoreCase("PWD_ACT")) {
+                    waitingForAcceptance = false;
+                }
+                if(data[0].equalsIgnoreCase("PWD_REJ")) {
+                    accessDenied = true;
+                    waitingForAcceptance = false;
+                }
+                if(data[0].equalsIgnoreCase("BANNED")) {
+                    waitingForAcceptance = false;
+                    banned = true;
+                }
                 if(data[0].equalsIgnoreCase("LOGGED")) {
                     logged(data[1].split(":", 2));
                 }
@@ -71,12 +89,12 @@ public class ClientSideSocket extends Thread{
         } catch (IOException e) {
             log.error("Connection with server lost.");
         } finally {
-            controller.logOut();
             try {
+                controller.logOut();
                 in.close();
                 out.close();
                 socket.close();
-            } catch (IOException ignored) { }
+            } catch (IOException | NullPointerException ignored) { }
         }
     }
 
@@ -158,6 +176,10 @@ public class ClientSideSocket extends Thread{
 
     public void setController(BattlemapController controller) {
         this.controller = controller;
+    }
+
+    public void sendPassword(String password) {
+        out.println("PWD:" + password);
     }
 
     public void requestNickname(String nickname) {
@@ -264,4 +286,27 @@ public class ClientSideSocket extends Thread{
         }
     }
 
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public boolean isWaitingForAcceptance() {
+        return waitingForAcceptance;
+    }
+
+    public boolean isAccessDenied() {
+        return accessDenied;
+    }
+
+    public boolean isUnknownHost() {
+        return unknownHost;
+    }
+
+    public boolean isOtherError() {
+        return otherError;
+    }
+
+    public boolean isBanned() {
+        return banned;
+    }
 }

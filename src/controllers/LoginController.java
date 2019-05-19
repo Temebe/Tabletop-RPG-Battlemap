@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import network_interface.ClientSideSocket;
@@ -15,10 +16,13 @@ import java.io.IOException;
 
 public class LoginController {
     private boolean gmPasswordVisible = false;
-    BattlemapController controller;
+    private BattlemapController controller;
 
     @FXML
     public Button offlineButton;
+
+    @FXML
+    public Button logInButton;
 
     @FXML
     private Text gmPasswordText;
@@ -37,6 +41,9 @@ public class LoginController {
 
     @FXML
     private PasswordField gmPasswordField;
+
+    @FXML
+    public Text infoText;
 
     public void toggleGMLogin() {
         gmPasswordVisible = !gmPasswordVisible;
@@ -62,29 +69,77 @@ public class LoginController {
     }
 
     public void logIn() {
+        logInButton.setDisable(true);
+        infoText.setVisible(true);
+        infoText.setText("Connecting...");
+        infoText.setFill(Color.BLACK);
         int port = Integer.parseInt(portField.getText());
         String nickname = nameField.getText();
         Server server = null;
         ClientSideSocket client = null;
         if(gmPasswordVisible) {
             server = new Server(port);
-        } else {
-            client = new ClientSideSocket(ipField.getText(), port);
-        }
-        startOfflineMode();
-        if(server != null) {
+            startOfflineMode();
             server.setController(controller);
+            controller.changePassword(passwordField.getText());
+            //noinspection StatementWithEmptyBody
             while(!server.isControllerSet()) {}
-            client = new ClientSideSocket("127.0.0.1", port);
+            client = new ClientSideSocket("127.0.0.1", port, passwordField.getText());
             client.setController(controller);
             controller.setServer(server, client);
             client.requestNickname(nickname);
-        } else {
-            if(client != null) {
-                client.setController(controller);
-                controller.setClient(client);
-                client.requestNickname(nickname);
+            return;
+        }
+        client = new ClientSideSocket(ipField.getText(), port, passwordField.getText());
+        if(!tryToConnect(client)) {
+            logInButton.setDisable(false);
+            return;
+        }
+        startOfflineMode();
+        client.setController(controller);
+        controller.setClient(client);
+        client.requestNickname(nickname);
+    }
+
+    private boolean tryToConnect(ClientSideSocket client) {
+        long start = System.currentTimeMillis();
+        while(System.currentTimeMillis() - start < 3000) {
+            try {
+                if (client.getSocket().isConnected() || client.isUnknownHost() || client.isOtherError()) {
+                    break;
+                }
+            } catch (NullPointerException e) {
+                setErrorMessage("Unable to connect to the server!");
+                return false;
             }
         }
+        if(!client.getSocket().isConnected() || client.isUnknownHost() || client.isOtherError()) {
+            setErrorMessage("Unable to connect to the server!");
+            return false;
+        }
+        infoText.setText("Connected, checking password...");
+        start = System.currentTimeMillis();
+        while(System.currentTimeMillis() - start < 3000 && client.isWaitingForAcceptance()) {
+            System.out.println(System.currentTimeMillis() - start);
+        }
+        if(client.isWaitingForAcceptance()) {
+            client.close();
+            setErrorMessage("Connected but waited too long for response");
+            return false;
+        } else if(client.isAccessDenied()) {
+            client.close();
+            setErrorMessage("Wrong password");
+            return false;
+        } else if(client.isBanned()) {
+            client.close();
+            setErrorMessage("You are banned from this server!");
+            return false;
+        }
+        return true;
+    }
+
+    private void setErrorMessage(String msg) {
+        infoText.setFill(Color.RED);
+        infoText.setText(msg);
     }
 }

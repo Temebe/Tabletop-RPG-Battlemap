@@ -124,7 +124,7 @@
                 </ScrollPane>
               </content>
             </Tab>
-            <Tab closable="false" text="CHAT">
+            <Tab fx:id="chatTab" closable="false" text="CHAT">
               <content>
                 <AnchorPane id="Content" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                   <children>

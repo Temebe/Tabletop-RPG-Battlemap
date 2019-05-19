@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane prefHeight="130.0" prefWidth="299.9998779296875" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/2.2" fx:controller="controllers.BanController">
+  <children>
+    <Button id="okButton" fx:id="banButton" defaultButton="true" layoutX="76.0" layoutY="89.0" mnemonicParsing="false" onAction="#ban" text="Ban" />
+    <Button id="okButton" layoutX="150.0" layoutY="89.0" mnemonicParsing="false" onAction="#cancel" text="Cancel" />
+    <Text layoutX="13.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Reason for ban player's ip:" wrappingWidth="270.0" />
+    <TextField fx:id="reasonField" layoutX="13.0" layoutY="39.0" prefWidth="270.0" />
+  </children>
+</AnchorPane>

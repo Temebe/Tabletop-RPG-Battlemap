@@ -8,6 +8,10 @@ import java.io.*;
 import java.net.Socket;
 
 //  CODES FOR MESSAGES
+//  PWD:password - client tells password to server
+//  PWD_ACT - password accepted
+//  PWD_REJ - password rejected
+//  BANNED - client has correct password but his ip is banned
 //  REQ_NAM:name - requests nickname "name" for player
 //  DC:PID
 //  MSG_REQ:PID:message:arguments - player PID send message (client to server)
@@ -60,7 +64,6 @@ public class ServerSideSocket extends Thread {
                 if(data[0].equalsIgnoreCase("MSG_REQ")) {
                     msgReq(data[1].split(":", 2));
                 }
-                // TODO permissions check
                 if(data[0].equalsIgnoreCase("DRAW_REQ")) {
                     drawReq(data[1].split(":", 4));
                 }
@@ -76,6 +79,9 @@ public class ServerSideSocket extends Thread {
                 if(data[0].equalsIgnoreCase("CHAR_SET_REQ")) {
                     data = data[1].split(":", 12);
                     charSetAct(data);
+                }
+                if(data[0].equalsIgnoreCase("PWD")) {
+                    pwd(data[1]);
                 }
             }
         } catch (IOException e) {
@@ -102,6 +108,9 @@ public class ServerSideSocket extends Thread {
     }
 
     private void drawReq(String[] data) {
+        if(!permissionGranted(PlayerGroup.drawingPerm)) {
+            return;
+        }
         try {
             String path = data[0];
             int posX = Integer.parseInt(data[1]);
@@ -116,6 +125,9 @@ public class ServerSideSocket extends Thread {
     }
 
     private void charCrReq(String[] data) {
+        if(!permissionGranted(PlayerGroup.creatingPerm)) {
+            return;
+        }
         try {
             int posX = Integer.parseInt(data[1]);
             int posY = Integer.parseInt(data[2]);
@@ -129,6 +141,9 @@ public class ServerSideSocket extends Thread {
     }
 
     private void charDlReq(String data) {
+        if(!permissionGranted(PlayerGroup.deletingPerm)) {
+            return;
+        }
         try {
             int cid = Integer.parseInt(data);
             controller.broadcastDeletingCharacter(cid);
@@ -140,6 +155,9 @@ public class ServerSideSocket extends Thread {
     }
 
     private void charSetAct(String[] data) {
+        if(!permissionGranted(PlayerGroup.editingPerm)) {
+            return;
+        }
         try {
             int cid = Integer.parseInt(data[0]);
             String name = data[1];
@@ -165,6 +183,9 @@ public class ServerSideSocket extends Thread {
     }
 
     private void charMovReq(String[] data) {
+        if(!permissionGranted(PlayerGroup.movingPerm)) {
+            return;
+        }
         try {
             int cid = Integer.parseInt(data[0]);
             int posX = Integer.parseInt(data[1]);
@@ -174,6 +195,24 @@ public class ServerSideSocket extends Thread {
             log.error("Server received corrupted data for character move request");
         } catch (NumberFormatException e) {
             log.error("Server received improper character id and/or positions");
+        }
+    }
+
+    private void pwd(String data) {
+        String msg;
+        if(controller.passwordMatches(data)) {
+            if(controller.isBanned(socket.getInetAddress().getHostAddress())) {
+                msg = "BANNED" + '\n';
+            } else {
+                msg = "PWD_ACT" + '\n';
+            }
+        } else {
+            msg = "PWD_REJ" + '\n';
+        }
+        try {
+            out.write(msg.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -313,6 +352,31 @@ public class ServerSideSocket extends Thread {
             out.close();
             socket.close();
         } catch (IOException ignored) { }
-        controller.broadcastChatMessage(nickname + " was kicked from server", "error");
+        controller.broadcastChatMessage(nickname + " was kicked from server (" + reason + ")",
+                "error");
+    }
+
+    public void ban(String reason) {
+        if(reason.trim().isEmpty()) {
+            reason = "No reason was given";
+        }
+        sendChatMessage("You were banned from this server: " + reason, "error");
+        controller.logOutPlayer(this);
+        try {
+            in.close();
+            out.close();
+            socket.close();
+        } catch (IOException ignored) { }
+        controller.addBannedIp(socket.getInetAddress().getHostAddress());
+        controller.broadcastChatMessage(nickname + " was banned from this server (" + reason + ")",
+                "error");
+    }
+
+    private boolean permissionGranted(int permission) {
+        if(!controller.getPlayerGroup(nickname).getPermission(permission)) {
+            sendChatMessage("You don't have permission for this action!", "error");
+            return false;
+        }
+        return true;
     }
 }

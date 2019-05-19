@@ -89,12 +89,14 @@ public class BattlemapController {
     private ContextMenu contextMenu;
     private String selectedPlayer = null;
     private ArrayList<PlayerGroup> playerGroups;
-    private String password;
+    private String password = "";
+    //private ArrayList<String> bannedIps = new ArrayList<>();
+    private ObservableList<String> bannedIps = FXCollections.observableArrayList();
 
     private History history = new History();
 
     //Extensions that Image class of javafx can handle
-    private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
+    final private String[] tilesExtensions = {"jpg", "jpeg", "png", "bmp", "gif"};
 
     @FXML
     public AnchorPane charactersChooseView;
@@ -167,6 +169,9 @@ public class BattlemapController {
 
     @FXML
     public MenuItem tabPaneVisibilityItem;
+
+    @FXML
+    public Tab chatTab;
 
     public enum packageType { characters, tiles }
 
@@ -491,9 +496,17 @@ public class BattlemapController {
             controller.setNickname(selectedPlayer);
         });
         MenuItem banItem = new MenuItem("Ban");
-        banItem.setOnAction(actionEvent -> log.debug("Ban " + selectedPlayer));
+        banItem.setOnAction(actionEvent -> {
+            BanController controller = (BanController)popUpNewWindow("banPopUp.fxml",
+                    "Ban player " + selectedPlayer);
+            controller.setParent(this);
+            controller.setNickname(selectedPlayer);
+        });
         MenuItem pmItem = new MenuItem("Send private message");
-        pmItem.setOnAction(actionEvent -> log.debug("Private message " + selectedPlayer));
+        pmItem.setOnAction(actionEvent -> {
+            tabPane.getSelectionModel().select(chatTab);
+            chatField.setText("/pm " + selectedPlayer + " ");
+        });
         MenuItem changeGroupItem = new MenuItem("Change player's group");
         changeGroupItem.setOnAction(actionEvent -> {
             ChangeGroupController controller = (ChangeGroupController)popUpNewWindow("changeGroup.fxml",
@@ -649,6 +662,23 @@ public class BattlemapController {
 
     public boolean passwordMatches(String password) {
         return this.password.equals(password);
+    }
+
+    public boolean isBanned(String ip) {
+        for(String bannedIp : bannedIps) {
+            if(ip.matches(bannedIp)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void addBannedIp(String ip) {
+        bannedIps.add(ip);
+    }
+
+    public void unbanIp(String ip) {
+        bannedIps.remove(ip);
     }
 
     public String getPassword() {
@@ -974,10 +1004,10 @@ public class BattlemapController {
         });
         characterSquare.setOnDragDetected(mouseEvent -> characterSquare.startFullDrag());
         characterSquare.setOnMouseDragged(mouseEvent -> {
-            characterSquare.setLayoutX(mouseEvent.getScreenX() + dragDelta.x);
-            characterSquare.setLayoutY(mouseEvent.getScreenY() + dragDelta.y);
+            characterSquare.setTranslateX(mouseEvent.getScreenX() + dragDelta.x);
+            characterSquare.setTranslateY(mouseEvent.getScreenY() + dragDelta.y);
         });
-        characterSquare.setOnMouseDragReleased(mouseDragEvent -> moveCharacter(characterSquare));
+        characterSquare.setOnMouseReleased(mouseEvent -> moveCharacter(characterSquare));
     }
 
     private void moveCharacter(CharacterSquare character) {
@@ -985,20 +1015,20 @@ public class BattlemapController {
         for (CharacterSquare ch: charactersList) {
             ch.unclick();
         }
-        int endX = (int)character.getLayoutX() / tileSize;
-        int endY = (int)character.getLayoutY() / tileSize;
+        int endX = (int)character.getTranslateX() / tileSize;
+        int endY = (int)character.getTranslateY() / tileSize;
         if(endX >= 0 && endY >= 0 && endX <= mapWidth - 1 && endY <= mapHeight - 1) {
             if(isConnected()) {
-                character.setLayoutPos(character.getPosX() * tileSize,
+                character.setTranslatePos(character.getPosX() * tileSize,
                         character.getPosY() * tileSize);
                 client.requestMoveCharacter(character.getCid(), endX, endY);
                 return;
             }
-            character.setLayoutPos(endX * tileSize, endY * tileSize);
+            character.setTranslatePos(endX * tileSize, endY * tileSize);
             character.setPosX(endX);
             character.setPosY(endY);
         } else {
-            character.setLayoutPos(character.getPosX() * tileSize,
+            character.setTranslatePos(character.getPosX() * tileSize,
                     character.getPosY() * tileSize);
         }
     }
@@ -1014,7 +1044,7 @@ public class BattlemapController {
         if(character == null) {
             return;
         }
-        character.setLayoutPos((double)posX * tileSize, (double)posY * tileSize);
+        character.setTranslatePos((double)posX * tileSize, (double)posY * tileSize);
         character.setPosX(posX);
         character.setPosY(posY);
 
@@ -1196,6 +1226,7 @@ public class BattlemapController {
             if(controller != null) {
                 controller.setParent(this);
                 controller.setPermissionGroups(playerGroups);
+                controller.setGeneralSettings(bannedIps);
             }
         } else {
             popUpError("You are not hosting any game!");
@@ -1581,8 +1612,8 @@ public class BattlemapController {
             args = line.split(";");
             loadGraphic(args[0], false);
             newCharacter.setGraphic(new ImageView(args[0]), args[0]);
-            newCharacter.setLayoutX(Double.parseDouble(args[1]));
-            newCharacter.setLayoutY(Double.parseDouble(args[2]));
+            newCharacter.setTranslateX(Double.parseDouble(args[1]));
+            newCharacter.setTranslateY(Double.parseDouble(args[2]));
             newCharacter.setSize(Integer.parseInt(args[3]));
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.first);
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.second);

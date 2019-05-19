@@ -21,6 +21,8 @@
                 <Button layoutX="243.0" layoutY="320.0" mnemonicParsing="false" onAction="#cancel" text="Close without saving" />
                 <Text layoutX="272.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Note that this password is not stored in encrypted form. Don't use passwords that are somehow important for you!" wrappingWidth="320.0" />
                 <Text fx:id="generalInfoText" layoutX="418.0" layoutY="338.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" visible="false" />
+                <ListView fx:id="bannedListView" layoutX="14.0" layoutY="94.0" prefHeight="200.0" prefWidth="200.0" />
+                <Text layoutX="14.0" layoutY="90.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Banned ip's:" />
               </children>
             </AnchorPane>
           </content>

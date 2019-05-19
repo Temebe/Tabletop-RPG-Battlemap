@@ -3,10 +3,7 @@ package controllers;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.ListView;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ToggleButton;
+import javafx.scene.control.*;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import network_interface.PlayerGroup;
@@ -15,10 +12,13 @@ import java.util.ArrayList;
 
 public class ControlPanelController extends PopUpController {
     private ArrayList<PlayerGroup> permissionGroups;
+    private ObservableList<String> bannedIps;
     private ObservableList<String> groupsList;
     private PlayerGroup currentGroup;
+    private ContextMenu bannedContextMenu;
 
     @FXML public ListView<String> groupsListView;
+    @FXML public ListView<String> bannedListView;
     @FXML public TextField groupNameField;
     @FXML public Text groupIdField;
     @FXML public Text errorText;
@@ -36,7 +36,7 @@ public class ControlPanelController extends PopUpController {
     @FXML public Text generalInfoText;
 
     // TODO add window with question whether user wants to go to another group w/o saving
-    public void setPermissionGroups(ArrayList<PlayerGroup> permissionGroups) {
+    void setPermissionGroups(ArrayList<PlayerGroup> permissionGroups) {
         this.permissionGroups = permissionGroups;
         groupsList = FXCollections.observableArrayList();
         groupsListView.setItems(groupsList);
@@ -53,6 +53,21 @@ public class ControlPanelController extends PopUpController {
         });
         currentGroup = permissionGroups.get(0);
         setGroupParameters(currentGroup);
+    }
+
+    void setGeneralSettings(ObservableList<String> bannedIps) {
+        passwordField.setText(parent.getPassword());
+        bannedListView.setItems(bannedIps);
+        this.bannedIps = bannedIps;
+        bannedContextMenu = new ContextMenu();
+        MenuItem removeIp = new MenuItem("Unban ip");
+        bannedContextMenu.getItems().add(removeIp);
+        removeIp.setOnAction(actionEvent -> {
+            String selectedIp = bannedListView.getSelectionModel().getSelectedItem();
+            bannedIps.removeAll(selectedIp);
+        });
+        bannedListView.setOnContextMenuRequested(contextMenuEvent ->
+                bannedContextMenu.show(bannedListView, contextMenuEvent.getScreenX(), contextMenuEvent.getScreenY()));
     }
 
     private PlayerGroup getGroupByName(String name) {

@@ -8,7 +8,6 @@ import shapes.StatusBar;
 
 import static controllers.BattlemapController.tileSize;
 
-// TODO posX and posY seem to be obsolete
 public class CharacterSquare extends Button {
     private String imagePath;
     private double posX;
@@ -120,9 +119,9 @@ public class CharacterSquare extends Button {
         }
     }
 
-    public void setLayoutPos(double x, double y) {
-        setLayoutX(x);
-        setLayoutY(y);
+    public void setTranslatePos(double x, double y) {
+        setTranslateX(x);
+        setTranslateY(y);
         setBarsOnStage();
     }
 
@@ -138,18 +137,18 @@ public class CharacterSquare extends Button {
         int height = 10 + (size - 1) * 5;
         if(firstBar != null) {
             firstBar.updateSize(this.size);
-            firstBar.setLayoutX(this.getLayoutX());
-            firstBar.setLayoutY(this.getLayoutY() - height);
+            firstBar.setLayoutX(getTranslateX());
+            firstBar.setLayoutY(getTranslateY() - height);
         }
         if(secondBar != null) {
             secondBar.updateSize(this.size);
-            secondBar.setLayoutX(this.getLayoutX());
-            secondBar.setLayoutY(this.getLayoutY() - 2*height);
+            secondBar.setLayoutX(getTranslateX());
+            secondBar.setLayoutY(getTranslateY() - 2*height);
         }
         if(thirdBar != null) {
             thirdBar.updateSize(this.size);
-            thirdBar.setLayoutX(this.getLayoutX());
-            thirdBar.setLayoutY(this.getLayoutY() - 3*height);
+            thirdBar.setLayoutX(getTranslateX());
+            thirdBar.setLayoutY(getTranslateY() - 3*height);
         }
     }
 

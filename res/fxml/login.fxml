@@ -11,7 +11,7 @@
   <children>
     <Text fx:id="title" layoutX="100.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="RPG Battlemap" />
     <Text layoutX="91.0" layoutY="135.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Connect to server" />
-    <Button layoutX="117.0" layoutY="263.0" mnemonicParsing="false" onAction="#logIn" text="Log in" />
+    <Button fx:id="logInButton" layoutX="117.0" layoutY="263.0" mnemonicParsing="false" onAction="#logIn" text="Log in" />
     <Button fx:id="offlineButton" layoutX="98.0" layoutY="50.0" mnemonicParsing="false" onAction="#startOfflineMode" text="Start offline" />
     <ToggleButton fx:id="toggleGM" layoutX="63.0" layoutY="309.0" mnemonicParsing="false" onAction="#toggleGMLogin" selected="false" text="Log in as GameMaster" />
     <TextField fx:id="ipField" layoutX="54.0" layoutY="154.0" prefWidth="136.0" text="127.0.0.1" />
@@ -24,5 +24,6 @@
     <Text fx:id="gmPasswordText" layoutX="14.0" layoutY="363.0" strokeType="OUTSIDE" strokeWidth="0.0" text="GM Password" visible="false" />
     <Text layoutX="199.0" layoutY="170.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Port" />
     <TextField fx:id="portField" layoutX="236.0" layoutY="154.0" prefWidth="50.0" text="8081" />
+    <Text fx:id="infoText" layoutX="14.0" layoutY="93.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Text" visible="false" wrappingWidth="270.0" />
   </children>
 </AnchorPane>
