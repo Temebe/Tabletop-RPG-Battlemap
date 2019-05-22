@@ -15,7 +15,7 @@ import network_interface.Server;
 import java.io.IOException;
 
 public class LoginController {
-    private boolean gmPasswordVisible = false;
+    private boolean hostGameEnabled = false;
     private BattlemapController controller;
 
     @FXML
@@ -23,9 +23,6 @@ public class LoginController {
 
     @FXML
     public Button logInButton;
-
-    @FXML
-    private Text gmPasswordText;
 
     @FXML
     public TextField ipField;
@@ -40,15 +37,11 @@ public class LoginController {
     public PasswordField passwordField;
 
     @FXML
-    private PasswordField gmPasswordField;
-
-    @FXML
     public Text infoText;
 
     public void toggleGMLogin() {
-        gmPasswordVisible = !gmPasswordVisible;
-        gmPasswordField.setVisible(gmPasswordVisible);
-        gmPasswordText.setVisible(gmPasswordVisible);
+        hostGameEnabled = !hostGameEnabled;
+        ipField.setDisable(hostGameEnabled);
     }
 
     public void startOfflineMode() {
@@ -58,7 +51,7 @@ public class LoginController {
             Scene scene = new Scene(loader.load());
             stage.setScene(scene);
             stage.setTitle("untitled - Tabletop RPG Battlemap");
-            controller = (BattlemapController)loader.getController();
+            controller = loader.getController();
             controller.setStage(stage);
             // Line below initializes actions that need stage to be already created
             // which is not the case for initialize method
@@ -75,9 +68,9 @@ public class LoginController {
         infoText.setFill(Color.BLACK);
         int port = Integer.parseInt(portField.getText());
         String nickname = nameField.getText();
-        Server server = null;
-        ClientSideSocket client = null;
-        if(gmPasswordVisible) {
+        Server server;
+        ClientSideSocket client;
+        if(hostGameEnabled) {
             server = new Server(port);
             startOfflineMode();
             server.setController(controller);

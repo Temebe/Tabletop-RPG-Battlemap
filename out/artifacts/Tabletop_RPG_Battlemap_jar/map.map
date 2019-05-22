@@ -1,36 +1,4 @@
-10 10
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
-/packages/tiles/Kenney rpg/rpgTile019.png
+iles/Kenney rpg/rpgTile019.png
 /packages/tiles/Kenney rpg/rpgTile019.png
 /packages/tiles/Kenney rpg/rpgTile019.png
 /packages/tiles/Kenney rpg/rpgTile019.png
@@ -202,12 +170,15 @@
 /images/transparent.png
 ###
 misiek;0
-/packages/characters/animals/bear.png;250.0;50.0;3
+/packages/characters/animals/bear.png;0.0;0.0;3
 0xff0000ff;100.0;100.0
 0x0000ffff;12.0;12.0
 #null
 kurczak;1
-/packages/characters/animals/chicken.png;50.0;50.0;2
+/packages/characters/animals/chicken.png;0.0;0.0;2
 0xff0000ff;15.0;15.0
 #null
 #null
+MSG_ACT:[21:31:35]Twoja_Stara(0): j hnb jkn:none
+MSG_ACT:[21:31:35]dasdasd(3): tst:none
+MSG_ACT:[21:31:35]dasdasd(3): rdgdfg:none

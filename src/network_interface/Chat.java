@@ -68,6 +68,7 @@ public class Chat {
     public void sendMessage(String msg) {
         if(!controller.isConnected()) {
             writeDownMessage("You're disconnected from server!");
+            return;
         }
         if(properMessage(msg)) {
             if(isLocalCommand(msg)) {

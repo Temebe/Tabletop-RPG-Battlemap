@@ -17,6 +17,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Paint;
 import javafx.stage.FileChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import main.CharacterSquare;
 import main.MapSquare;
@@ -508,10 +509,12 @@ public class BattlemapController {
         contextMenu.getItems().addAll(kickItem, banItem, pmItem, changeGroupItem);
     }
 
-    // TODO set maximum nick size? or sth
     public void logInPlayer(String nickname, ServerSideSocket socket) {
         Player newPlayer = new Player(socket);
         nickname = nickname.replace(" ", "_");
+        if(nickname.length() > 20) {
+            nickname = nickname.substring(0, 21);
+        }
         if(playersList.isEmpty()) {
             newPlayer.setNickname(nickname);
             newPlayer.setPermissionGroup(0);
@@ -958,8 +961,8 @@ public class BattlemapController {
     }
 
     private void setUpCharacter(CharacterSquare characterSquare) {
-        characterSquare.setLayoutX(characterSquare.getPosX() * tileSize);
-        characterSquare.setLayoutY(characterSquare.getPosY() * tileSize);
+        characterSquare.setTranslateX(characterSquare.getPosX() * tileSize);
+        characterSquare.setTranslateY(characterSquare.getPosY() * tileSize);
         characterSquare.setGraphic(new ImageView(cachedImages.get(currentCharacterPath)), currentCharacterPath);
         mapView.getChildren().add(characterSquare);
         charactersList.add(characterSquare);
@@ -996,7 +999,10 @@ public class BattlemapController {
             characterSquare.setTranslateX(mouseEvent.getScreenX() + dragDelta.x);
             characterSquare.setTranslateY(mouseEvent.getScreenY() + dragDelta.y);
         });
-        characterSquare.setOnMouseReleased(mouseEvent -> moveCharacter(characterSquare));
+        characterSquare.setOnMouseDragReleased(mouseDragEvent -> {
+            moveCharacter(characterSquare);
+            characterSquare.unclick();
+        });
     }
 
     private void moveCharacter(CharacterSquare character) {
@@ -1006,6 +1012,7 @@ public class BattlemapController {
         }
         int endX = (int)character.getTranslateX() / tileSize;
         int endY = (int)character.getTranslateY() / tileSize;
+        log.debug("It's now at  " + (int)character.getTranslateX() + (int)character.getTranslateY());
         if(endX >= 0 && endY >= 0 && endX <= mapWidth - 1 && endY <= mapHeight - 1) {
             if(isConnected()) {
                 character.setTranslatePos(character.getPosX() * tileSize,
@@ -1014,6 +1021,7 @@ public class BattlemapController {
                 return;
             }
             character.setTranslatePos(endX * tileSize, endY * tileSize);
+            log.debug("Setting character pos at " + endX * tileSize + endY * tileSize);
             character.setPosX(endX);
             character.setPosY(endY);
         } else {
