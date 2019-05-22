@@ -6,14 +6,25 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import network_interface.Chat;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+// TODO find way for testing javafx in junit5
 public class ChatTests {
-    private TextField chatField = new TextField();
-    private Chat chat = new Chat(new AnchorPane(), new ScrollPane(), chatField, new BattlemapController(), 0);
+    private TextField chatField;
+    private Chat chat;
+
+
+//    @BeforeEach
+//    public void setUp() {
+//        chatField = new TextField();
+//        chat = new Chat(new AnchorPane(), new ScrollPane(), chatField, new BattlemapController(), 0);
+//    }
+
+//    private TextField chatField = new TextField();
+//    private Chat chat = new Chat(new AnchorPane(), new ScrollPane(), chatField, new BattlemapController(), 0);
 
     @ParameterizedTest
     @DisplayName("Throws at improper argument")
