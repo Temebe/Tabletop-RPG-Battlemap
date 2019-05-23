@@ -1609,8 +1609,6 @@ public class BattlemapController {
             args = line.split(";");
             loadGraphic(args[0], false);
             newCharacter.setGraphic(new ImageView(args[0]), args[0]);
-            newCharacter.setTranslateX(Double.parseDouble(args[1]));
-            newCharacter.setTranslateY(Double.parseDouble(args[2]));
             newCharacter.setTranslatePos(Double.parseDouble(args[1]), Double.parseDouble(args[2]));
             newCharacter.setSize(Integer.parseInt(args[3]));
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.first);
