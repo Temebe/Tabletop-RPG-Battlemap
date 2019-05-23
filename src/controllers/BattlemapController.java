@@ -1512,8 +1512,8 @@ public class BattlemapController {
         StatusBar secondBar = character.getBar(CharacterSquare.barType.second);
         StatusBar thirdBar = character.getBar(CharacterSquare.barType.third);
         writer.println(character.getName() + ";" + character.getCid());
-        writer.println(character.getImagePath() + ";" + character.getLayoutX() + ";"
-                + character.getLayoutY() + ";" + character.getSize());
+        writer.println(character.getImagePath() + ";" + character.getTranslateX() + ";"
+                + character.getTranslateY() + ";" + character.getSize());
         writeDownStatusBar(firstBar, writer);
         writeDownStatusBar(secondBar, writer);
         writeDownStatusBar(thirdBar, writer);
@@ -1611,6 +1611,7 @@ public class BattlemapController {
             newCharacter.setGraphic(new ImageView(args[0]), args[0]);
             newCharacter.setTranslateX(Double.parseDouble(args[1]));
             newCharacter.setTranslateY(Double.parseDouble(args[2]));
+            newCharacter.setTranslatePos(Double.parseDouble(args[1]), Double.parseDouble(args[2]));
             newCharacter.setSize(Integer.parseInt(args[3]));
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.first);
             newCharacter.setBar(loadStatusBar(br, newCharacter.getSize()), CharacterSquare.barType.second);
